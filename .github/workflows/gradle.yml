@@ -2,6 +2,9 @@ name: Java CI
 
 on: [push]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     if: "! contains(toJSON(github.event.commits.*.message), '[SKIP-CI]')"
@@ -26,3 +29,35 @@ jobs:
         with:
           name: WorldGuard
           path: worldguard-bukkit/build/libs/worldguard-bukkit-*-dist.jar
+
+  prerelease:
+    needs: build
+    if: github.ref == 'refs/heads/7.0.x'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: WorldGuard
+          path: dist
+
+      - name: Build translator archive
+        run: |
+          JAR=$(ls dist/worldguard-bukkit-*-dist.jar)
+          mkdir -p wgtranslator/WorldGuard
+          cp "$JAR" wgtranslator/
+          curl -sSL -o wgtranslator/WorldGuard/translator-commands.yml https://gist.githubusercontent.com/imDaniX/7a23930c29c05fd7b7a4687d6ccafc7b/raw/translator-commands.yml
+          curl -sSL -o wgtranslator/WorldGuard/translator.yml https://gist.githubusercontent.com/imDaniX/7a23930c29c05fd7b7a4687d6ccafc7b/raw/translator.yml
+          cd wgtranslator
+          zip -r ../WGTranslator-Russian.zip .
+
+      - name: Publish prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: 7.0.x-prerelease
+          name: 7.0.x prerelease
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          files: |
+            dist/worldguard-bukkit-*-dist.jar
+            WGTranslator-Russian.zip
