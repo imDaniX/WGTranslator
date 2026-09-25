@@ -54,8 +54,12 @@ jobs:
       - name: Publish prerelease
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: 7.0.x-prerelease
-          name: 7.0.x prerelease
+          tag_name: v7.0.x-tr-live
+          name: 7.0.x Live
+          body: |
+            Changes from the last commit
+
+            [${{ github.sha }}](${{ github.event.head_commit.url }})
           prerelease: true
           target_commitish: ${{ github.sha }}
           files: |
