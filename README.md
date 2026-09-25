@@ -1,6 +1,6 @@
 <div align="center">
 
-**WorldGuard** 7.0.18 | **Minecraft** <ins>26.1 - 26.2</ins>
+**WorldGuard** 7.0.19 | **Minecraft** <ins>26.2 - 26.3</ins>
 
 ![WGTranslator](wgtranslator-logo.png)
 
@@ -8,7 +8,7 @@
 
 <div align="right">
 
-**<big>[Download](https://github.com/imDaniX/WGTranslator/actions)</big>**
+**<big>[Download](https://github.com/imDaniX/WGTranslator/releases)</big>**
 
 </div>
 
