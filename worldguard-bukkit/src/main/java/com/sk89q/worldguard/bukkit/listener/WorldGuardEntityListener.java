@@ -20,6 +20,7 @@
 package com.sk89q.worldguard.bukkit.listener;
 
 import com.destroystokyo.paper.event.entity.EntityZapEvent;
+import com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.LocalPlayer;
@@ -62,6 +63,7 @@ import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.SulfurCube;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.entity.Tameable;
 import org.bukkit.entity.WindCharge;
@@ -488,7 +490,7 @@ public class WorldGuardEntityListener extends AbstractListener {
                 event.blockList().clear();
                 return;
             }
-        } else if (ent instanceof TNTPrimed || ent instanceof ExplosiveMinecart) {
+        } else if (ent instanceof TNTPrimed || ent instanceof ExplosiveMinecart || ent instanceof SulfurCube) {
             if (wcfg.blockTNTExplosions) {
                 event.setCancelled(true);
                 return;
@@ -616,7 +618,8 @@ public class WorldGuardEntityListener extends AbstractListener {
                 return;
             }
         } else if (event.getEntityType() == EntityType.TNT
-                || event.getEntityType() == EntityType.TNT_MINECART) {
+                || event.getEntityType() == EntityType.TNT_MINECART
+                || event.getEntityType() == EntityType.SULFUR_CUBE) {
             if (wcfg.blockTNTExplosions) {
                 event.setCancelled(true);
                 return;
@@ -656,8 +659,11 @@ public class WorldGuardEntityListener extends AbstractListener {
             return;
         }
 
-        EntityType entityType = event.getEntityType();
+        handleCreatureSpawn(event, event.getLocation(), event.getEntityType(), event.getSpawnReason(), cfg, wcfg);
+    }
 
+    private static void handleCreatureSpawn(Cancellable event, Location location, EntityType entityType, SpawnReason spawnReason,
+                                            ConfigurationManager cfg, WorldConfiguration wcfg) {
         com.sk89q.worldedit.world.entity.EntityType weEntityType = BukkitAdapter.adapt(entityType);
 
         if (weEntityType != null && wcfg.blockCreatureSpawn.contains(weEntityType)) {
@@ -665,11 +671,9 @@ public class WorldGuardEntityListener extends AbstractListener {
             return;
         }
 
-        Location eventLoc = event.getLocation();
-
         if (wcfg.useRegions && cfg.useRegionsCreatureSpawnEvent) {
             ApplicableRegionSet set =
-                    WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery().getApplicableRegions(BukkitAdapter.adapt(eventLoc));
+                    WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery().getApplicableRegions(BukkitAdapter.adapt(location));
 
             if (!set.testState(null, Flags.MOB_SPAWNING)) {
                 event.setCancelled(true);
@@ -684,8 +688,8 @@ public class WorldGuardEntityListener extends AbstractListener {
         }
 
         if (wcfg.blockGroundSlimes && entityType == EntityType.SLIME
-                && eventLoc.getY() >= 60
-                && event.getSpawnReason() == SpawnReason.NATURAL) {
+                && location.getY() >= 60
+                && spawnReason == SpawnReason.NATURAL) {
             event.setCancelled(true);
             return;
         }
@@ -905,6 +909,53 @@ public class WorldGuardEntityListener extends AbstractListener {
             if (event.getEntityType() == EntityType.PIG) {
                 handlePigZap(event.getEntity(), event);
             }
+        }
+
+        /**
+         * Applies the natural spawn checks from {@link WorldGuardEntityListener#onCreatureSpawn} before the
+         * server constructs the entity. The CreatureSpawnEvent checks fire at the very
+         * end of the spawn pipeline, after the position was picked, the placement
+         * checks ran and the mob was constructed and finalized, so a region that denies
+         * mob spawning pays for a mob to be built and thrown away on every attempt.
+         * Cancelling here skips the placement checks, the construction and
+         * finalizeSpawn for a spawn that was going to be refused anyway.
+         *
+         * Cancelling does not end the chunk's remaining attempts. Only
+         * setShouldAbortSpawn(true) makes the spawner return early; a plain cancel
+         * falls through to the next candidate position exactly like a failed
+         * placement check.
+         *
+         * Note that Paper fires this event for every candidate position, before the
+         * light, block and collision checks, so the region query below runs
+         * considerably more often than the CreatureSpawnEvent one did. On Paper with
+         * per-player-mob-spawns enabled, which is the default, every cancelled pre
+         * spawn is also charged to a per player mob backoff counter that is added to
+         * the mob cap of every player within tick view distance and bleeds off one per
+         * spawn cycle, so a large denied region can suppress spawning in neighbouring
+         * chunks that allow mobs.
+         *
+         * Only NATURAL spawns are handled here; every other spawn reason keeps going
+         * through the CreatureSpawnEvent checks unchanged.
+         */
+        @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+        public void onPreCreatureSpawn(PreCreatureSpawnEvent event) {
+            if (event.getReason() != SpawnReason.NATURAL) {
+                return;
+            }
+
+            ConfigurationManager cfg = getConfig();
+
+            if (!cfg.useRegionsPreCreatureSpawnEvent) {
+                return;
+            }
+
+            if (cfg.activityHaltToggle) {
+                event.setCancelled(true);
+                return;
+            }
+
+            Location spawnLoc = event.getSpawnLocation();
+            handleCreatureSpawn(event, spawnLoc, event.getType(), event.getReason(), cfg, getWorldConfig(spawnLoc.getWorld()));
         }
     }
 

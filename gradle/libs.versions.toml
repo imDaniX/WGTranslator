@@ -1,5 +1,5 @@
 [versions]
-worldedit = "7.4.0"
+worldedit = "7.4.4"
 crankcase = "0.1.0"
 
 # Minimum versions we apply to make dependencies support newer Java
@@ -26,7 +26,7 @@ autoService = "com.google.auto.service:auto-service:1.1.1"
 jsr305 = "com.google.code.findbugs:jsr305:3.0.2"
 jetbrains-annotations = "org.jetbrains:annotations:24.1.0"
 
-paperApi = "io.papermc.paper:paper-api:26.1.2.build.+"
+paperApi = "io.papermc.paper:paper-api:26.2.build.+"
 paperLib = "io.papermc:paperlib:1.0.8"
 
 dummypermscompat = "com.sk89q:dummypermscompat:1.10"
@@ -41,9 +41,9 @@ commandbook = "com.sk89q:commandbook:2.3"
 hamcrest-library = "org.hamcrest:hamcrest-library:2.2"
 
 # Mojang-provided libraries, CHECK AGAINST MINECRAFT for versions
-guava = "com.google.guava:guava:33.5.0-jre"
-log4j-bom = "org.apache.logging.log4j:log4j-bom:2.24.1"
-gson = "com.google.code.gson:gson:2.13.2"
+guava = "com.google.guava:guava:33.6.0-jre"
+log4j-bom = "org.apache.logging.log4j:log4j-bom:2.25.2"
+gson = "com.google.code.gson:gson:2.14.0"
 fastutil = "it.unimi.dsi:fastutil:8.5.18"
 
 # Bukkit-provided libraries, CHECK AGAINST SPIGOT for versions

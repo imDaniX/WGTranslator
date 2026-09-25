@@ -2,7 +2,7 @@ name: WorldGuard
 main: com.sk89q.worldguard.bukkit.WorldGuardPlugin
 version: "${internalVersion}"
 depend: [WorldEdit]
-api-version: "26.1"
+api-version: "26.2"
 folia-supported: true
 commands:
   wgtranslator:
