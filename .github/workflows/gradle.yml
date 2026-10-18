@@ -25,31 +25,48 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
+      - name: Build translator archive
+        working-directory: worldguard-bukkit/build/libs
+        run: |
+          mkdir -p wgtranslator/WorldGuard
+          cp worldguard-bukkit-*-dist.jar wgtranslator/
+          curl -sSL -o wgtranslator/WorldGuard/translator-commands.yml https://gist.githubusercontent.com/imDaniX/7a23930c29c05fd7b7a4687d6ccafc7b/raw/translator-commands.yml
+          curl -sSL -o wgtranslator/WorldGuard/translator.yml https://gist.githubusercontent.com/imDaniX/7a23930c29c05fd7b7a4687d6ccafc7b/raw/translator.yml
+          cd wgtranslator
+          zip -r ../WGTranslator-Russian.zip .
+
       - uses: actions/upload-artifact@v4
         with:
           name: WorldGuard
-          path: worldguard-bukkit/build/libs/worldguard-bukkit-*-dist.jar
+          path: |
+            worldguard-bukkit/build/libs/worldguard-bukkit-*-dist.jar
+            worldguard-bukkit/build/libs/WGTranslator-Russian.zip
 
   prerelease:
     needs: build
     if: github.ref == 'refs/heads/7.0.x'
     runs-on: ubuntu-latest
+    concurrency:
+      group: prerelease
+      cancel-in-progress: true
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Move tag to current commit
+        run: |
+          git tag -f v7.0.x-tr-live
+          git push -f origin v7.0.x-tr-live
+
       - uses: actions/download-artifact@v4
         with:
           name: WorldGuard
           path: dist
 
-      - name: Build translator archive
-        run: |
-          JAR=$(ls dist/worldguard-bukkit-*-dist.jar)
-          mkdir -p wgtranslator/WorldGuard
-          cp "$JAR" wgtranslator/
-          curl -sSL -o wgtranslator/WorldGuard/translator-commands.yml https://gist.githubusercontent.com/imDaniX/7a23930c29c05fd7b7a4687d6ccafc7b/raw/translator-commands.yml
-          curl -sSL -o wgtranslator/WorldGuard/translator.yml https://gist.githubusercontent.com/imDaniX/7a23930c29c05fd7b7a4687d6ccafc7b/raw/translator.yml
-          cd wgtranslator
-          zip -r ../WGTranslator-Russian.zip .
+      - name: Delete previous live release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete v7.0.x-tr-live --yes || true
 
       - name: Publish prerelease
         uses: softprops/action-gh-release@v2
@@ -62,6 +79,50 @@ jobs:
             [${{ github.sha }}](${{ github.event.head_commit.url }})
           prerelease: true
           target_commitish: ${{ github.sha }}
-          files: |
-            dist/worldguard-bukkit-*-dist.jar
-            WGTranslator-Russian.zip
+          files: dist/*
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') && endsWith(github.ref, '-tr')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read tag metadata
+        id: meta
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          mapfile -t LINES < <(git tag -l --format='%(contents)' "$TAG" | sed '/^\s*$/d')
+          VERSION="${TAG#v}"
+          VERSION="${VERSION%-tr}"
+          MC="${LINES[0]}"
+          NEXT="${LINES[1]}"
+          if [ -z "$MC" ] || [ -z "$NEXT" ]; then
+            echo "::error::Tag message must contain MC versions and next version on separate lines"
+            exit 1
+          fi
+          {
+            echo "version=$VERSION"
+            echo "mc=$MC"
+            echo "next=$NEXT"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: WorldGuard
+          path: dist
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: WG ${{ steps.meta.outputs.version }} | MC ${{ steps.meta.outputs.mc }}
+          body: |
+            > [!NOTE]
+            > See [the live tag](https://github.com/imDaniX/WGTranslator/releases/tag/v7.0.x-tr-live) for newer versions
+            > <br/>
+
+            Last commit before merging ${{ steps.meta.outputs.next }}
+          files: dist/*
