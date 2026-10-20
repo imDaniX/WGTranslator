@@ -1,9 +1,16 @@
 package me.imdanix.wgtranslator;
 
 import com.sk89q.minecraft.util.commands.CommandException;
-import com.sk89q.worldedit.util.formatting.text.Component;
-import com.sk89q.worldedit.util.formatting.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentLike;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public enum Msg {
@@ -68,13 +75,11 @@ public enum Msg {
     HALT__ALLOWED__INFO("ALL intensive server activity is now allowed."),
     HALT__ALLOWED__SILENT("(Silent) ALL intensive server activity is now allowed."),
     HALT__AUTO_REMOVE("Halt-Act: {removed} entities (>10) auto-removed from {world}", "removed", "world"),
-    HALT__CONFIRM__PROMPT1("Click to confirm /{command}", "command"),
-    HALT__CONFIRM__PROMPT2("[Click]"),
-    HALT__CONFIRM__PROMPT3(" or type "),
-    HALT__CONFIRM__PROMPT4(" to confirm."),
-    HALT__CONFIRM__WARNING1("This command will "),
-    HALT__CONFIRM__WARNING2("PERMANENTLY"),
-    HALT__CONFIRM__WARNING3(" erase ALL animals in ALL loaded chunks in ALL loaded worlds. "),
+    HALT__CONFIRM__MESSAGE(true, """
+            <red>This command will <bold>PERMANENTLY</bold> erase ALL animals in ALL loaded chunks in ALL loaded worlds.
+            <click:run_command:'{command}'><hover:show_text:'Click to confirm {command}'><green>[Click]</green></hover></click>\
+            <red> or type <aqua><click:suggest_command:'{command}'>{command}</click><red> to confirm.""",
+            "command"),
     HALT__ENTITIES_REMOVED("{count} entities (>10) auto-removed from {world}", "count", "world"),
     HALT__HALTED__BROADCAST("ALL intensive server activity halted by {name}.", "name"),
     HALT__HALTED__INFO("ALL intensive server activity halted."),
@@ -100,11 +105,19 @@ public enum Msg {
     LOCATE__REPOINTED("Compass repointed."),
     LOCATE__RESET("Compass reset to spawn."),
 
+    SESSION__BYPASS__DISABLED("&5You are not bypassing region protection. You can toggle this with /rg bypass"),
+    SESSION__BYPASS__ENABLED("&5You are bypassing region protection. You can toggle this with /rg bypass"),
+
     SLAY__SLAIN("Slain!"),
     SLAY__SLAIN_BY("Slain by {name}.", "name"),
     SLAY__SLAIN_OTHER("Players slain."),
 
     STACK__COMPACTED("Items compacted into stacks!"),
+
+    PAGINATION__EMPTY("No results found."),
+    PAGINATION__INVALID_PAGE("Invalid page number"),
+    PAGINATION__NAVIGATE("Click to navigate"),
+    PAGINATION__PAGE("&ePage &6{page}&r of &6{pages}", "page", "pages"),
 
     REGION__BYPASS__DISABLED("You are no longer bypassing region protection."),
     REGION__BYPASS__ENABLED("You are now bypassing region protection (as long as you have permission)."),
@@ -116,8 +129,7 @@ public enum Msg {
     REGION__CLAIM__ERROR__NO_POLYGONS("Polygons are currently not supported for /rg claim."),
     REGION__CLAIM__ERROR__ONLY_INSIDE("You may only claim regions inside existing regions that you or your group own."),
     REGION__CLAIM__ERROR__OVERLAPS("This region overlaps with someone else's region."),
-    REGION__CLAIM__ERROR__TOO_LARGE1("This region is too large to claim."),
-    REGION__CLAIM__ERROR__TOO_LARGE2("Max. volume: {max}, your volume: {current}", "max", "current"),
+    REGION__CLAIM__ERROR__TOO_LARGE("This region is too large to claim.\nMax. volume: {max}, your volume: {current}", "max", "current"),
     REGION__CLAIM__ERROR__TOO_MANY("You own too many regions, delete one first to claim a new one."),
     REGION__CLAIM__FAIL("Failed to claim region"),
     REGION__CLAIM__SUCCESS("A new region has been claimed named '{region}'", "region"),
@@ -128,8 +140,7 @@ public enum Msg {
     REGION__COMMANDS__CURRENT_REGIONS_WITH_HIDDEN(", and {count} hidden regions", "count"),
     REGION__COMMANDS__CURRENT_REGIONS_HIDDEN("{count} hidden regions", "count"),
     REGION__COMMANDS__HEIGHT_WARNING("(Warning: The height of the region was {height} block(s).)", "height"),
-    REGION__COMMANDS__NEW_USER_INFO1("(This region is NOW PROTECTED from modification from others. Don't want that? Use "),
-    REGION__COMMANDS__NEW_USER_INFO2(")"),
+    REGION__COMMANDS__NEW_USER_INFO(true, "<gray>(This region is NOW PROTECTED from modification from others. Don't want that? Use <aqua>{command}</aqua>)", "command"),
     REGION__COMMANDS__NOT_STANDING_IN_REGION("You're not standing in a region. Specify an ID if you want to select a specific region."),
     REGION__COMMANDS__NOT_STANDING_GLOBAL("You're not standing in any regions. Using the global region for this world instead."),
     REGION__COMMANDS__REGIONS_DISABLED("Region support is disabled in the target world. It can be enabled per-world in WorldGuard's configuration files. However, you may need to restart your server afterwards."),
@@ -141,8 +152,7 @@ public enum Msg {
     REGION__COMMANDS__REGION_NO_GLOBAL("Sorry, you can't use __global__ here."),
     REGION__COMMANDS__SAVE_FAILURES("(Warning: The background saving of region data is failing for these worlds: {worlds}. Your changes are getting lost. See the server log for more information.)", "worlds"),
     REGION__COMMANDS__SELECT_AREA_FIRST("Please select an area first. Use WorldEdit to make a selection! (see: https://worldedit.enginehub.org/en/latest/usage/regions/selections/)."),
-    REGION__COMMANDS__SPAWN_OVERLAP_INFO(" This region overlaps vanilla's spawn protection. WorldGuard cannot override this, and only server operators will be able to interact with this area."),
-    REGION__COMMANDS__SPAWN_OVERLAP_WARNING("Warning!"),
+    REGION__COMMANDS__SPAWN_OVERLAP(true, "<red>Warning! This region overlaps vanilla's spawn protection. WorldGuard cannot override this, and only server operators will be able to interact with this area."),
     REGION__COMMANDS__STANDING_IN_MULTIPLE("You're standing in several regions (please pick one)."),
     REGION__COMMANDS__UNSUPPORTED_SHAPE("Sorry, you can only use cuboids and polygons for WorldGuard regions."),
     REGION__COMMANDS__WORLD_SPECIFY("Please specify the world with -{flag} world_name.", "flag"),
@@ -151,21 +161,16 @@ public enum Msg {
     REGION__DEFINE__FAIL("Failed to add the region '{region}'", "region"),
     REGION__DEFINE__SUCCESS("A new region has been made named '{region}'", "region"),
 
-    REGION__FLAGS__BUILD__WARNING__BODY(" Setting this flag is not required for protection."),
-    REGION__FLAGS__BUILD__WARNING__DETAIL("Setting this flag will completely override default protection, and apply to members, non-members, pistons, sand physics, and everything else that can modify blocks."),
-    REGION__FLAGS__BUILD__WARNING__DOCUMENTATION("Only set this flag if you are sure you know what you are doing. See "),
-    REGION__FLAGS__BUILD__WARNING__HEADER("WARNING:"),
     REGION__FLAGS__CHANGE("Click to change"),
-    REGION__FLAGS__CONSEQUENCES1("Setting this flag may have unintended consequences."),
-    REGION__FLAGS__CONSEQUENCES2("Please read the documentation and set this flag manually if you really intend to."),
-    REGION__FLAGS__CONSEQUENCES3("(Hint: You do not need to set this to protect the region!)"),
+    REGION__FLAGS__CONSEQUENCES(true, """
+            <red>Setting this flag may have unintended consequences.</red>
+            Please read the documentation and set this flag manually if you really intend to.
+            (Hint: You do not need to set this to protect the region!)"""
+    ),
     REGION__FLAGS__FAIL("Failed to get region flags"),
-    REGION__FLAGS__INHERITED__DEFAULT1("Default"),
-    REGION__FLAGS__INHERITED__DEFAULT2(" value"),
+    REGION__FLAGS__INHERITED__DEFAULT(true, "<u>Default</u> value"),
     REGION__FLAGS__INHERITED__INHERITED("Inherited value"),
-    REGION__FLAGS__INHERITED__INHERITED_DEFAULT1("Inherited & "),
-    REGION__FLAGS__INHERITED__INHERITED_DEFAULT2("default"),
-    REGION__FLAGS__INHERITED__INHERITED_DEFAULT3(" value"),
+    REGION__FLAGS__INHERITED__INHERITED_DEFAULT(true, "Inherited & <u>default</u> value"),
     REGION__FLAGS__SET("Click to set"),
     REGION__FLAGS__SET_CUSTOM("Click to set custom value"),
     REGION__FLAGS__SPECIAL__BUILD("This is a special flag which overrides build checks. (Not movement related!)"),
@@ -209,10 +214,20 @@ public enum Msg {
     REGION__FLAGS__VALUE__STRING__DEFAULT("Default value:"),
     REGION__FLAGS__VALUE__STRING__UNSET("unset string"),
 
-    REGION__FLAGS__WARNING__DOCUMENTATION("this documentation page"),
+    REGION__FLAGS__WARNING__BUILD(true, """
+            <red><bold>WARNING:</bold> Setting this flag is not required for protection.</red>
+            Setting this flag will completely override default protection, and apply to members, non-members, pistons, sand physics, and everything else that can modify blocks.
+            Only set this flag if you are sure you know what you are doing. See \
+            <aqua><click:open_url:'https://worldguard.enginehub.org/en/latest/regions/flags/#protection-related'>this documentation page</click></aqua>."""
+    ),
+    REGION__FLAGS__WARNING__PASSTHROUGH(true, """
+            <red><bold>Setting this flag may have unintended consequences.</bold> \
+            Please read the documentation and set this flag manually if you really intend to.</red>
+            (Hint: You do not need to set this to protect the region!) See \
+            <aqua><click:open_url:'https://worldguard.enginehub.org/en/latest/regions/flags/#overrides'>this documentation page</click></aqua>."""
+    ),
 
-    REGION__FLAG__CURRENT__FLAGS("(Current flags: "),
-    REGION__FLAG__CURRENT__FLAGS_END(")"),
+    REGION__FLAG__CURRENT_LIST(true, "<gray>(Current flags: {flags}<gray>)", "flags"),
 
     REGION__FLAG__ERROR__EMPTY("You cannot use -e(mpty) with a flag value."),
     REGION__FLAG__ERROR__NO_GROUP("Region flag '{flag}' does not have a group flag!", "flag"),
@@ -220,61 +235,55 @@ public enum Msg {
     REGION__FLAG__GROUP__RESET("Region group flag for '{flag}' reset to default.", "flag"),
     REGION__FLAG__GROUP__SET("Region group flag for '{flag}' set.", "flag"),
 
-    REGION__FLAG__LIST__AVAILABLE("Available flags: "),
-    REGION__FLAG__LIST__COMMAND("/rg flags {region}", "region"),
+    REGION__FLAG__LIST__AVAILABLE_LIST(true, "Available flags: {flags}", "flags"),
+    REGION__FLAG__LIST__SEPARATOR(true, ", "),
+    REGION__FLAG__LIST__USE_COMMAND(true, "<light_purple>Or use the command <aqua><click:run_command:'{command}'>/rg flags {region}</click>", "command", "region"),
     REGION__FLAG__LIST__FETCHING("Flag list for invalid flag command."),
 
-    REGION__FLAG__LIST__OR_USE("Or use the command "),
     REGION__FLAG__LIST__UNKNOWN("Unknown flag specified: {flag}", "flag"),
     REGION__FLAG__REMOVED("Region flag {flag} removed from '{region}'. (Any -g(roups) were also removed.)", "flag", "region"),
     REGION__FLAG__SET("Region flag {flag} set on '{region}' to '{value}'.", "flag", "region", "value"),
 
-    REGION__INFO__BOUNDS__BASE("Bounds:"),
-    REGION__INFO__BOUNDS__CENTER_TELEPORT("Click to teleport to the center of the region"),
-    REGION__INFO__BOUNDS__CENTER_TELEPORT_CMD("[Center Teleport]"),
+    REGION__INFO__ACTION__CENTER_TELEPORT(true, "<gray><hover:show_text:'Click to teleport to the center of the region'><click:run_command:'{command}'>[Center Teleport]", "command"),
     REGION__INFO__BOUNDS__CLICK_SELECT("Click to select"),
-    REGION__INFO__BOUNDS__TELEPORT("Click to teleport"),
-    REGION__INFO__BOUNDS__TELEPORT_CMD("[Teleport]"),
+    REGION__INFO__ACTION__TELEPORT(true, "<gray><hover:show_text:'Click to teleport<newline>{location}'><click:run_command:'{command}'>[Teleport]", "command", "location"),
 
-    REGION__INFO__DOMAIN__ADD("Click to add a player or group"),
-    REGION__INFO__DOMAIN__ADD_CMD("[Add]"),
-    REGION__INFO__DOMAIN__CLEAR("Click to clear"),
-    REGION__INFO__DOMAIN__CLEAR_CMD("[Clr]"),
+    REGION__INFO__ACTION__ADD(true, "<green><hover:show_text:'Click to add a player or group'><click:suggest_command:'{command}'>[Add]", "command"),
+    REGION__INFO__ACTION__CLEAR(true, "<red><hover:show_text:'Click to clear'><click:suggest_command:'{command}'>[Clr]", "command"),
     REGION__INFO__DOMAIN__NONE("(none)"),
-    REGION__INFO__DOMAIN__REMOVE("Click to remove a player or group"),
-    REGION__INFO__DOMAIN__REMOVE_CMD("[Rem]"),
+    REGION__INFO__ACTION__REMOVE(true, "<red><hover:show_text:'Click to remove a player or group'><click:suggest_command:'{command}'>[Rem]", "command"),
 
     REGION__INFO__FAIL("Failed to fetch region information"),
     REGION__INFO__FETCHING("Fetching region info"),
 
-    REGION__INFO__FLAGS__BASE("Flags: "),
     REGION__INFO__FLAGS__CLICK_TO_SET("Click to set flag"),
-    REGION__INFO__FLAGS__CLICK_TO_SET_FLAG("Click to set a flag"),
+    REGION__INFO__ACTION__FLAGS(true, "<{color}><hover:show_text:'Click to set a flag'><click:run_command:'{command}'>[Flags]", "color", "command"),
+    REGION__INFO__FLAGS__ENTRY(true, "<{color}>{name}: <yellow>{value}", "color", "name", "value"),
     REGION__INFO__FLAGS__NONE("(none)"),
-    REGION__INFO__FLAGS__SET_COMMAND("[Flags]"),
+    REGION__INFO__FLAGS__SEPARATOR(true, ", "),
 
     REGION__INFO__LAST_SEEN("Any names suffixed by * are 'last seen names' and may not be up to date."),
 
-    REGION__INFO__MEMBERS("Members: "),
-    REGION__INFO__OWNERS("Owners: "),
+    REGION__INFO__LAYOUT(true, """
+            {header}
+            <blue>Region: <yellow>{id}<gray> (type=<white>{type}<gray>, priority={priority}<gray>)
+            <blue>Flags: {flags}{parents}
+            <blue>Owners: {owners}
+            <blue>Members: {members}
+            <blue>Volume: <yellow>{volume}
+            <blue>Bounds: {bounds}{last-seen}""",
+            "header", "id", "type", "priority", "flags", "parents", "owners", "members", "volume", "bounds", "last-seen"
+    ),
 
     REGION__INFO__PARENT__CLICK_INFO("Click for info"),
-    REGION__INFO__PARENT__END(")"),
-    REGION__INFO__PARENT__INFO(" (parent, priority="),
-    REGION__INFO__PARENT__UNLINK("Click to unlink parent"),
-    REGION__INFO__PARENT__UNLINK_CMD("[X]"),
+    REGION__INFO__PARENT__SUFFIX(true, "<gray> (parent, priority={priority}<gray>)", "priority"),
+    REGION__INFO__ACTION__UNLINK(true, "<red><hover:show_text:'Click to unlink parent'><click:suggest_command:'{command}'>[X]", "command"),
 
     REGION__INFO__PRIORITY__CLICK_CHANGE("Click to change"),
-
-    REGION__INFO__REGION__END(")"),
-    REGION__INFO__REGION__NAME("Region: "),
-    REGION__INFO__REGION__PRIORITY(", priority="),
-    REGION__INFO__REGION__TYPE(" (type="),
 
     REGION__INFO__SPECIFY("Please specify the region with /region info -w world_name region_name."),
 
     REGION__INFO__TITLE("Region Info"),
-    REGION__INFO__VOLUME("Volume: "),
 
     REGION__INFO__WAIT("(Please wait... fetching region information...)"),
 
@@ -286,12 +295,9 @@ public enum Msg {
     REGION__LIST__INFO__HEADER__PLAYER("Regions for {player}", "player"),
     REGION__LIST__INFO__OWNER("Region Owner"),
     REGION__LIST__INFO__MEMBER("Region Member"),
-    REGION__LIST__INFO__BUTTON__INFO("[Info]"),
-    REGION__LIST__INFO__BUTTON__INFO_CLICK("Click for info"),
-    REGION__LIST__INFO__BUTTON__TP("[TP]"),
-    REGION__LIST__INFO__BUTTON__TP_CLICK("Click to teleport"),
-    REGION__LIST__INFO__BUTTON__TP_CENTER("[TP-Center]"),
-    REGION__LIST__INFO__BUTTON__TP_CENTER_CLICK("Click to teleport to the center"),
+    REGION__LIST__INFO__ACTION__INFO(true, "<gray><hover:show_text:'Click for info'><click:run_command:'{command}'>[Info]", "command"),
+    REGION__LIST__INFO__ACTION__TP(true, "<gray><hover:show_text:'Click to teleport'><click:run_command:'{command}'>[TP]", "command"),
+    REGION__LIST__INFO__ACTION__TP_CENTER(true, "<gray><hover:show_text:'Click to teleport to the center'><click:run_command:'{command}'>[TP-Center]", "command"),
     REGION__LIST__INFO__ERROR__UUID_IO("Failed to lookup the UUID of '{name}'", "name"),
     REGION__LIST__INFO__ERROR__UUID_INTERRUPT("The lookup the UUID of '{name}' was interrupted", "name"),
     REGION__LIST__INFO__ERROR__DOESNT_EXIST("A user by the name of '{name}' does not seem to exist.", "name"),
@@ -345,10 +351,8 @@ public enum Msg {
     REGION__MIGRATEUUID__ERROR("Error encountered while migrating: {message}", "message"),
     REGION__MIGRATEUUID__PERFORMING("Now performing migration... this may take a while."),
 
-    REGION__PARENT__CURRENT_INHERITANCE__INFO("(Current inheritance on '{parent}':", "parent"),
-    REGION__PARENT__CURRENT_INHERITANCE__INFO_END(")"),
-    REGION__PARENT__CURRENT_INHERITANCE__SHORT("(Current inheritance:"),
-    REGION__PARENT__CURRENT_INHERITANCE__SHORT_END(")"),
+    REGION__PARENT__INHERITANCE__CURRENT(true, "<gray>(Current inheritance:\n{tree}<gray>)", "tree"),
+    REGION__PARENT__INHERITANCE__ON(true, "<gray>(Current inheritance on '{parent}':\n{tree}<gray>)", "parent", "tree"),
     REGION__PARENT__ERROR__CIRCULAR("Uh oh! Setting '{parent}' to be the parent of '{child}' would cause circular inheritance.", "parent", "child"),
     REGION__PARENT__ORPHANED(" Region is now orphaned."),
     REGION__PARENT__SET("Inheritance set for region '{region}'.", "region"),
@@ -428,121 +432,85 @@ public enum Msg {
     ;
 
     private final String defaultMsg;
+    private final boolean miniMessage;
     private final String[] placeholders;
-    private String currentMsg;
+    private volatile Compiled current;
 
     Msg(String def, String... phs) {
+        this(false, def, phs);
+    }
+
+    Msg(boolean miniMessage, String def, String... phs) {
         defaultMsg = def;
+        this.miniMessage = miniMessage;
         placeholders = new String[phs.length];
         for (int i = 0; i < phs.length; i++) {
             placeholders[i] = "{" + phs[i] + "}";
         }
-        setMessage(defaultMsg);
+        current = compile(getDefaultMessage());
     }
 
     public String getDefault() {
         return defaultMsg;
     }
 
-    public String get() {
-        return currentMsg;
+    public boolean isMiniMessage() {
+        return miniMessage;
+    }
+
+    public Message getDefaultMessage() {
+        return Message.of(defaultMsg, miniMessage ? Message.Serializer.MINIMESSAGE : Message.Serializer.LEGACY_AMPERSAND);
     }
 
     public String get(Object... args) {
-        String result = currentMsg;
-        for (int i = 0; i < placeholders.length; i++) {
-            result = result.replace(placeholders[i], String.valueOf(args[i]));
-        }
-        return result;
+        return Message.Serializer.toLegacy(text(args));
     }
 
-    public CommandException exception() {
-        return new CommandException(currentMsg);
-    }
-
-    public CommandException exception(Object... args) {
+    public CommandException cmdException(Object... args) {
         return new CommandException(get(args));
     }
 
-    public Component text() {
-        return LegacyComponentSerializer.legacyLinking().deserialize(currentMsg, '&');
-    }
-
     public Component text(Object... args) {
-        return LegacyComponentSerializer.legacyLinking().deserialize(get(args), '&');
+        Compiled compiled = current;
+        Rendered rendered = render(compiled, args);
+        return compiled.styled(Messenger.combine(compiled.message.place(), rendered.main, rendered.sub));
     }
 
-    public boolean setMessage(String msg) {
-        if (msg == null) {
-            currentMsg = defaultMsg;
-            return false;
+    private void send(Object receiver, Message.Type fallback, Object... args) {
+        Compiled compiled = current;
+        Rendered rendered = render(compiled, args);
+        Message.Place place = compiled.message.place();
+        Message.Type type = place == Message.Place.CHAT && compiled.message.type() == null ? fallback : compiled.message.type();
+        if (type == null) {
+            Messenger.send(receiver, place, rendered.main, rendered.sub);
         } else {
-            currentMsg = colorize(msg);
-            return true;
+            Messenger.send(receiver, place, type.apply(rendered.main), rendered.sub == null ? null : type.apply(rendered.sub));
         }
     }
 
-    public static String colorize(String message) {
-        StringBuilder builder = new StringBuilder(message.length() + 32);
-        int i = 0;
-        int len = message.length();
+    public void info(Object receiver, Object... args) {
+        send(receiver, Message.Type.INFO, args);
+    }
 
-        while (i < len) {
-            if (i + 7 < len && (message.charAt(i) == '&' || message.charAt(i) == '§') && message.charAt(i + 1) == '#') {
-                boolean isHex = true;
-                for (int j = 2; j < 8; j++) {
-                    char c = message.charAt(i + j);
-                    if (!isColorCode(c)) {
-                        isHex = false;
-                        break;
-                    }
-                }
-                if (isHex) {
-                    String hexDigits = message.substring(i + 2, i + 8);
-                    builder.append('§').append('x');
-                    for (int k = 0; k < 6; k++) {
-                        builder.append('§').append(Character.toLowerCase(hexDigits.charAt(k)));
-                    }
-                    i += 8;
-                    continue;
-                }
-            }
+    public void error(Object receiver, Object... args) {
+        send(receiver, Message.Type.ERROR, args);
+    }
 
-            if (i + 1 < len && message.charAt(i) == '&') {
-                char next = message.charAt(i + 1);
-                if (isFormatCode(next)) {
-                    builder.append('§').append(Character.toLowerCase(next));
-                    i += 2;
-                    continue;
-                }
-            }
+    public void debug(Object receiver, Object... args) {
+        send(receiver, Message.Type.DEBUG, args);
+    }
 
-            builder.append(message.charAt(i));
-            i++;
+    public void plain(Object receiver, Object... args) {
+        send(receiver, Message.Type.PLAIN, args);
+    }
+
+    public boolean setMessage(@Nullable Message message) {
+        if (message == null) {
+            current = compile(getDefaultMessage());
+            return false;
         }
-
-        return builder.toString();
-    }
-
-    private static boolean isColorCode(char c) {
-        return switch (c) {
-            case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-                 'a', 'b', 'c', 'd', 'e', 'f',
-                 'A', 'B', 'C', 'D', 'E', 'F' -> true;
-            default -> false;
-        };
-    }
-
-    private static boolean isFormatCode(char c) {
-        return switch (c) {
-            case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-                 'a', 'b', 'c', 'd', 'e', 'f',
-                 'A', 'B', 'C', 'D', 'E', 'F',
-                 'k', 'l', 'm', 'n', 'o', 'r',
-                 'K', 'L', 'M', 'N', 'O', 'R',
-                 'x', 'X' -> true;
-            default -> false;
-        };
+        current = compile(message);
+        return true;
     }
 
     public String asSection() {
@@ -551,9 +519,138 @@ public enum Msg {
                 .replace('_', '-');
     }
 
-    public String asLegacySection() {
-        return name().toLowerCase(Locale.ENGLISH)
-                .replace("__", ".")
-                .replace("_", "");
+    private Compiled compile(Message message) {
+        Message.Serializer serializer = message.serializer() != null ? message.serializer() : Messenger.defaultSerializer();
+        String mainText = message.text();
+        String subText = null;
+        if (message.place() == Message.Place.SUBTITLE) {
+            subText = mainText;
+            mainText = "";
+        } else if (message.place() == Message.Place.TITLE) {
+            int newline = mainText.indexOf('\n');
+            if (newline >= 0) {
+                subText = mainText.substring(newline + 1);
+                mainText = mainText.substring(0, newline);
+            }
+        }
+        boolean mini = serializer == Message.Serializer.MINIMESSAGE;
+        return new Compiled(message, serializer, mainText, subText, mini ? tags(mainText) : null, mini && subText != null ? tags(subText) : null);
     }
+
+    private Rendered render(Compiled compiled, Object[] args) {
+        if (placeholders.length == 0 || args.length == 0) {
+            return new Rendered(compiled.main, compiled.sub);
+        }
+        Message.Serializer serializer = compiled.serializer;
+        if (serializer == Message.Serializer.MINIMESSAGE) {
+            TagResolver resolver = resolver(args);
+            return new Rendered(
+                    Message.Serializer.deserializeMiniMessage(compiled.mainTags, resolver),
+                    compiled.subTags == null ? null : Message.Serializer.deserializeMiniMessage(compiled.subTags, resolver)
+            );
+        }
+        return new Rendered(fill(compiled.main, args), compiled.sub == null ? null : fill(compiled.sub, args));
+    }
+
+    private Component fill(Component template, Object[] args) {
+        List<Component> children = template.children().stream().map(child -> fill(child, args)).toList();
+        if (!(template instanceof TextComponent text)) {
+            return template.children(children);
+        }
+        List<Piece> pieces = split(text.content());
+        if (pieces.stream().noneMatch(piece -> piece.placeholder >= 0)) {
+            return template.children(children);
+        }
+        TextComponent.Builder builder = Component.text().style(text.style());
+        for (Piece piece : pieces) {
+            builder.append(piece.placeholder < 0 ? Component.text(piece.text) : argument(args, piece.placeholder));
+        }
+        return builder.append(children).build();
+    }
+
+    private String tags(String text) {
+        String result = text;
+        for (String placeholder : placeholders) {
+            result = result.replace(placeholder, "<" + placeholder.substring(1, placeholder.length() - 1) + ">");
+        }
+        return result;
+    }
+
+    @SuppressWarnings("PatternValidation")
+    private TagResolver resolver(Object[] args) {
+        List<TagResolver> resolvers = new ArrayList<>();
+        for (int i = 0; i < placeholders.length && i < args.length; i++) {
+            String name = placeholders[i].substring(1, placeholders[i].length() - 1);
+            String value = String.valueOf(args[i]);
+            if (args[i] instanceof ComponentLike like) {
+                resolvers.add(Placeholder.component(name, like));
+            } else if (value.indexOf('§') >= 0) {
+                resolvers.add(Placeholder.component(name, Message.Serializer.fromLegacy(value)));
+            } else {
+                resolvers.add(Placeholder.parsed(name, MiniMessage.miniMessage().escapeTags(value)));
+            }
+        }
+        return TagResolver.resolver(resolvers);
+    }
+
+    private List<Piece> split(String text) {
+        List<Piece> pieces = new ArrayList<>();
+        int from = 0;
+        while (true) {
+            int start = -1;
+            int found = -1;
+            for (int i = 0; i < placeholders.length; i++) {
+                int index = text.indexOf(placeholders[i], from);
+                if (index >= 0 && (start < 0 || index < start)) {
+                    start = index;
+                    found = i;
+                }
+            }
+            if (found < 0) {
+                break;
+            }
+            if (start > from) {
+                pieces.add(new Piece(from, text.substring(from, start), -1));
+            }
+            pieces.add(new Piece(start, placeholders[found], found));
+            from = start + placeholders[found].length();
+        }
+        if (from < text.length()) {
+            pieces.add(new Piece(from, text.substring(from), -1));
+        }
+        return pieces;
+    }
+
+    private Component argument(Object[] args, int index) {
+        if (index >= args.length) {
+            return Component.text(placeholders[index]);
+        }
+        return args[index] instanceof ComponentLike like ? like.asComponent() : Message.Serializer.fromLegacy(String.valueOf(args[index]));
+    }
+
+    private static final class Compiled {
+        private final Message message;
+        private final Message.Serializer serializer;
+        private final String mainTags;
+        private final String subTags;
+        private final Component main;
+        private final Component sub;
+
+        private Compiled(Message message, Message.Serializer serializer, String mainText, String subText, String mainTags, String subTags) {
+            this.message = message;
+            this.serializer = serializer;
+            this.mainTags = mainTags;
+            this.subTags = subTags;
+            this.main = serializer.deserialize(mainText);
+            this.sub = subText == null ? null : serializer.deserialize(subText);
+        }
+
+        private Component styled(Component component) {
+            return message.type() == null ? component : message.type().apply(component);
+        }
+    }
+
+    private record Rendered(Component main, @Nullable Component sub) { }
+
+    private record Piece(int start, String text, int placeholder) { }
 }

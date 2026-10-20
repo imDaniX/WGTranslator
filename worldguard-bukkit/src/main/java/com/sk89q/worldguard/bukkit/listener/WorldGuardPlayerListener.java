@@ -49,23 +49,15 @@ import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerGameModeChangeEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerLoginEvent;
-import org.bukkit.event.player.PlayerRespawnEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
 
 /**
  * Handles all events thrown in relation to a player.
@@ -108,7 +100,7 @@ public class WorldGuardPlayerListener extends AbstractListener {
         WorldConfiguration wcfg = getWorldConfig(world);
 
         if (cfg.activityHaltToggle) {
-            player.sendMessage(Msg.HALT__SERVER_HALTED.get());
+            Msg.HALT__SERVER_HALTED.plain(player);
 
             int removed = 0;
 
@@ -125,7 +117,7 @@ public class WorldGuardPlayerListener extends AbstractListener {
         }
 
         if (wcfg.fireSpreadDisableToggle) {
-            player.sendMessage(Msg.FIRE__DISABLED.get());
+            Msg.FIRE__DISABLED.plain(player);
         }
 
         Events.fire(new ProcessPlayerEvent(player));
@@ -217,7 +209,7 @@ public class WorldGuardPlayerListener extends AbstractListener {
             ItemStack heldItem = player.getInventory().getItem(slot);
             if (heldItem != null && heldItem.getAmount() < 0) {
                 player.getInventory().setItem(slot, null);
-                player.sendMessage(Msg.INFINITESTACK__REMOVE.get());
+                Msg.INFINITESTACK__REMOVE.plain(player);
             }
         }
     }
@@ -248,7 +240,7 @@ public class WorldGuardPlayerListener extends AbstractListener {
                 ItemStack heldItem = player.getInventory().getItem(slot);
                 if (heldItem != null && heldItem.getAmount() < 0) {
                     player.getInventory().setItem(slot, null);
-                    player.sendMessage(Msg.INFINITESTACK__REMOVE_SLOT.get(slot));
+                    Msg.INFINITESTACK__REMOVE_SLOT.plain(player, slot);
                 }
             }
         }
@@ -260,7 +252,7 @@ public class WorldGuardPlayerListener extends AbstractListener {
                 ApplicableRegionSet set = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery()
                         .getApplicableRegions(BukkitAdapter.adapt(block.getLocation()), RegionQuery.QueryOption.SORT);
                 if (set.size() > 0) {
-                    player.sendMessage(Msg.WAND__BUILD__INFO.get(set.testState(localPlayer, Flags.BUILD) ? Msg.WAND__BUILD__YES.get() : Msg.WAND__BUILD__NO.get()));
+                    Msg.WAND__BUILD__INFO.plain(player, set.testState(localPlayer, Flags.BUILD) ? Msg.WAND__BUILD__YES.get() : Msg.WAND__BUILD__NO.get());
 
                     StringBuilder str = new StringBuilder();
                     for (Iterator<ProtectedRegion> it = set.iterator(); it.hasNext();) {
@@ -270,9 +262,9 @@ public class WorldGuardPlayerListener extends AbstractListener {
                         }
                     }
 
-                    localPlayer.print(Msg.WAND__REGIONS__LIST.get(str));
+                    Msg.WAND__REGIONS__LIST.info(localPlayer, str);
                 } else {
-                    localPlayer.print(Msg.WAND__REGIONS__EMPTY.get());
+                    Msg.WAND__REGIONS__EMPTY.info(localPlayer);
                 }
 
                 event.setUseItemInHand(Event.Result.DENY);
@@ -339,7 +331,7 @@ public class WorldGuardPlayerListener extends AbstractListener {
             ItemStack heldItem = player.getInventory().getItem(newSlot);
             if (heldItem != null && heldItem.getAmount() < 0) {
                 player.getInventory().setItem(newSlot, null);
-                player.sendMessage(Msg.INFINITESTACK__REMOVE.get());
+                Msg.INFINITESTACK__REMOVE.plain(player);
             }
         }
     }
@@ -434,7 +426,7 @@ public class WorldGuardPlayerListener extends AbstractListener {
 
         if (cfg.blockInGameOp) {
             if (opPattern.matcher(event.getMessage()).matches()) {
-                player.sendMessage(Msg.ERROR__OP_DEOP.get());
+                Msg.ERROR__OP_DEOP.plain(player);
                 event.setCancelled(true);
                 return;
             }

@@ -25,7 +25,6 @@ import com.sk89q.minecraft.util.commands.CommandException;
 import com.sk89q.minecraft.util.commands.CommandPermissionsException;
 import com.sk89q.worldedit.command.util.AsyncCommandBuilder;
 import com.sk89q.worldedit.extension.platform.Actor;
-import com.sk89q.worldedit.util.auth.AuthorizationException;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
@@ -73,7 +72,10 @@ public class MemberCommands extends RegionCommandsBase {
         final String description = Msg.REGION__MEMBERSHIP__ADDMEMBER__ADDING.get(region.getId(), world.getName());
         AsyncCommandBuilder.wrap(resolver, sender)
                 .registerWithSupervisor(worldGuard.getSupervisor(), description)
-                .onSuccess(Msg.REGION__MEMBERSHIP__ADDMEMBER__SUCCESS.get(region.getId()), region.getMembers()::addAll)
+                .onSuccess((String) null, domain -> {
+                    region.getMembers().addAll(domain);
+                    Msg.REGION__MEMBERSHIP__ADDMEMBER__SUCCESS.info(sender, region.getId());
+                })
                 .onFailure(Msg.REGION__MEMBERSHIP__ADDMEMBER__FAIL.get(), worldGuard.getExceptionConverter())
                 .buildAndExec(worldGuard.getExecutorService());
     }
@@ -106,7 +108,10 @@ public class MemberCommands extends RegionCommandsBase {
         final String description = Msg.REGION__MEMBERSHIP__ADDOWNER__ADDING.get(region.getId(), world.getName());
         AsyncCommandBuilder.wrap(checkedAddOwners(sender, manager, region, world, resolver), sender)
                 .registerWithSupervisor(worldGuard.getSupervisor(), description)
-                .onSuccess(Msg.REGION__MEMBERSHIP__ADDOWNER__SUCCESS.get(region.getId()), region.getOwners()::addAll)
+                .onSuccess((String) null, domain -> {
+                    region.getOwners().addAll(domain);
+                    Msg.REGION__MEMBERSHIP__ADDOWNER__SUCCESS.info(sender, region.getId());
+                })
                 .onFailure(Msg.REGION__MEMBERSHIP__ADDOWNER__FAIL.get(), worldGuard.getExceptionConverter())
                 .buildAndExec(worldGuard.getExecutorService());
     }
@@ -123,7 +128,7 @@ public class MemberCommands extends RegionCommandsBase {
                             .get(world).getMaxRegionCount(player);
                     if (maxRegionCount >= 0 && manager.getRegionCountOfPlayer(player)
                             >= maxRegionCount) {
-                        throw Msg.REGION__MEMBERSHIP__ADDOWNER__MAXIMUM.exception();
+                        throw Msg.REGION__MEMBERSHIP__ADDOWNER__MAXIMUM.cmdException();
                     }
                 }
             }
@@ -167,7 +172,7 @@ public class MemberCommands extends RegionCommandsBase {
             callable = region::getMembers;
         } else {
             if (args.argsLength() < 2) {
-                throw Msg.REGION__MEMBERSHIP__REMOVEMEMBER__LIST.exception();
+                throw Msg.REGION__MEMBERSHIP__REMOVEMEMBER__LIST.cmdException();
             }
 
             // Resolve members asynchronously
@@ -182,7 +187,10 @@ public class MemberCommands extends RegionCommandsBase {
         AsyncCommandBuilder.wrap(callable, sender)
                 .registerWithSupervisor(worldGuard.getSupervisor(), description)
                 .sendMessageAfterDelay(Msg.REGION__MEMBERSHIP__REMOVEMEMBER__WAIT.get())
-                .onSuccess(Msg.REGION__MEMBERSHIP__REMOVEMEMBER__SUCCESS.get(region.getId()), region.getMembers()::removeAll)
+                .onSuccess((String) null, domain -> {
+                    region.getMembers().removeAll(domain);
+                    Msg.REGION__MEMBERSHIP__REMOVEMEMBER__SUCCESS.info(sender, region.getId());
+                })
                 .onFailure(Msg.REGION__MEMBERSHIP__REMOVEMEMBER__FAIL.get(), worldGuard.getExceptionConverter())
                 .buildAndExec(worldGuard.getExecutorService());
     }
@@ -210,7 +218,7 @@ public class MemberCommands extends RegionCommandsBase {
             callable = region::getOwners;
         } else {
             if (args.argsLength() < 2) {
-                throw Msg.REGION__MEMBERSHIP__REMOVEOWNER__LIST.exception();
+                throw Msg.REGION__MEMBERSHIP__REMOVEOWNER__LIST.cmdException();
             }
 
             // Resolve owners asynchronously
@@ -225,7 +233,10 @@ public class MemberCommands extends RegionCommandsBase {
         AsyncCommandBuilder.wrap(callable, sender)
                 .registerWithSupervisor(worldGuard.getSupervisor(), description)
                 .sendMessageAfterDelay(Msg.REGION__MEMBERSHIP__REMOVEOWNER__WAIT.get())
-                .onSuccess(Msg.REGION__MEMBERSHIP__REMOVEOWNER__SUCCESS.get(region.getId()), region.getOwners()::removeAll)
+                .onSuccess((String) null, domain -> {
+                    region.getOwners().removeAll(domain);
+                    Msg.REGION__MEMBERSHIP__REMOVEOWNER__SUCCESS.info(sender, region.getId());
+                })
                 .onFailure(Msg.REGION__MEMBERSHIP__REMOVEOWNER__FAIL.get(), worldGuard.getExceptionConverter())
                 .buildAndExec(worldGuard.getExecutorService());
     }

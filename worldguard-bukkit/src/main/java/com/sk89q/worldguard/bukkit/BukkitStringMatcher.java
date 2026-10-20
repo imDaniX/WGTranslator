@@ -58,7 +58,7 @@ public class BukkitStringMatcher implements StringMatcher {
                     }
                 }
 
-                throw Msg.ERROR__MATCHER__NO_NORMAL_WORLD.exception();
+                throw Msg.ERROR__MATCHER__NO_NORMAL_WORLD.cmdException();
 
                 // #nether for the first nether world
             } else if (filter.equalsIgnoreCase("#nether")) {
@@ -68,7 +68,7 @@ public class BukkitStringMatcher implements StringMatcher {
                     }
                 }
 
-                throw Msg.ERROR__MATCHER__NO_NETHER_WORLD.exception();
+                throw Msg.ERROR__MATCHER__NO_NETHER_WORLD.cmdException();
 
                 // #end for the first nether world
             } else if (filter.equalsIgnoreCase("#end")) {
@@ -78,7 +78,7 @@ public class BukkitStringMatcher implements StringMatcher {
                     }
                 }
 
-                throw Msg.ERROR__MATCHER__NO_END_WORLD.exception();
+                throw Msg.ERROR__MATCHER__NO_END_WORLD.cmdException();
 
                 // Handle getting a world from a player
             } else if (filter.matches("^#player$")) {
@@ -86,12 +86,12 @@ public class BukkitStringMatcher implements StringMatcher {
 
                 // They didn't specify an argument for the player!
                 if (parts.length == 1) {
-                    throw Msg.ERROR__MATCHER__EXPECT_ARG.exception();
+                    throw Msg.ERROR__MATCHER__EXPECT_ARG.cmdException();
                 }
 
                 return matchPlayers(sender, parts[1]).iterator().next().getWorld();
             } else {
-                throw Msg.ERROR__MATCHER__INVALID_ID.exception(filter);
+                throw Msg.ERROR__MATCHER__INVALID_ID.cmdException(filter);
             }
         }
 
@@ -101,7 +101,7 @@ public class BukkitStringMatcher implements StringMatcher {
             }
         }
 
-        throw Msg.ERROR__MATCHER__NO_WORLD.exception();
+        throw Msg.ERROR__MATCHER__NO_WORLD.cmdException();
     }
 
     @Override
@@ -154,7 +154,7 @@ public class BukkitStringMatcher implements StringMatcher {
     @Override
     public Iterable<? extends LocalPlayer> matchPlayers(Actor source, String filter) throws CommandException {
         if (Bukkit.getServer().getOnlinePlayers().isEmpty()) {
-            throw Msg.ERROR__MATCHER__NO_PLAYERS.exception();
+            throw Msg.ERROR__MATCHER__NO_PLAYERS.cmdException();
         }
 
         List<LocalPlayer> wgPlayers = Bukkit.getServer().getOnlinePlayers().stream().map(player -> WorldGuardPlugin.inst().wrapPlayer(player)).collect(Collectors.toList());
@@ -196,7 +196,7 @@ public class BukkitStringMatcher implements StringMatcher {
                 return checkPlayerMatch(players);
 
             } else {
-                throw Msg.ERROR__MATCHER__INVALID_GROUP.exception(filter);
+                throw Msg.ERROR__MATCHER__INVALID_GROUP.cmdException(filter);
             }
         }
 
