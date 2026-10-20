@@ -32,12 +32,6 @@ import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.regions.Polygonal2DRegion;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.regions.RegionSelector;
-import com.sk89q.worldedit.util.formatting.component.ErrorFormat;
-import com.sk89q.worldedit.util.formatting.component.SubtleFormat;
-import com.sk89q.worldedit.util.formatting.text.TextComponent;
-import com.sk89q.worldedit.util.formatting.text.event.ClickEvent;
-import com.sk89q.worldedit.util.formatting.text.event.HoverEvent;
-import com.sk89q.worldedit.util.formatting.text.format.TextColor;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
@@ -47,14 +41,16 @@ import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.FlagContext;
 import com.sk89q.worldguard.protection.flags.InvalidFlagFormat;
 import com.sk89q.worldguard.protection.managers.RegionManager;
-import com.sk89q.worldguard.protection.regions.GlobalProtectedRegion;
-import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
-import com.sk89q.worldguard.protection.regions.ProtectedPolygonalRegion;
-import com.sk89q.worldguard.protection.regions.ProtectedRegion;
-import com.sk89q.worldguard.protection.regions.RegionContainer;
+import com.sk89q.worldguard.protection.regions.*;
 import com.sk89q.worldguard.protection.regions.RegionQuery.QueryOption;
 import com.sk89q.worldguard.protection.util.WorldEditRegionConverter;
+import me.imdanix.wgtranslator.Messenger;
 import me.imdanix.wgtranslator.Msg;
+import me.imdanix.wgtranslator.text.Text;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.util.Set;
 import java.util.function.Predicate;
@@ -98,7 +94,7 @@ class RegionCommandsBase {
                     World override = WorldEdit.getInstance().getSessionManager().get(sender).getWorldOverride();
                     if (override != null) {
                         if (sender instanceof LocalPlayer && !override.equals(((LocalPlayer) sender).getWorld())) {
-                            sender.printDebug(Msg.REGION__COMMANDS__USING_WORLD.text(override.getName()));
+                            Msg.REGION__COMMANDS__USING_WORLD.debug(sender, override.getName());
                         }
                         return override;
                     }
@@ -108,7 +104,7 @@ class RegionCommandsBase {
             if (sender instanceof LocalPlayer) {
                 return ((LocalPlayer) sender).getWorld();
             } else {
-                throw Msg.REGION__COMMANDS__WORLD_SPECIFY.exception(flag);
+                throw Msg.REGION__COMMANDS__WORLD_SPECIFY.cmdException(flag);
             }
         }
     }
@@ -123,11 +119,11 @@ class RegionCommandsBase {
      */
     protected static String checkRegionId(String id, boolean allowGlobal) throws CommandException {
         if (!ProtectedRegion.isValidId(id)) {
-            throw Msg.REGION__COMMANDS__REGION_INVALID_ID.exception(id);
+            throw Msg.REGION__COMMANDS__REGION_INVALID_ID.cmdException(id);
         }
 
         if (!allowGlobal && id.equalsIgnoreCase("__global__")) { // Sorry, no global
-            throw Msg.REGION__COMMANDS__REGION_NO_GLOBAL.exception();
+            throw Msg.REGION__COMMANDS__REGION_NO_GLOBAL.cmdException();
         }
 
         return id;
@@ -159,7 +155,7 @@ class RegionCommandsBase {
                 return region;
             }
 
-            throw Msg.REGION__COMMANDS__REGION_NOT_FOUND.exception(id);
+            throw Msg.REGION__COMMANDS__REGION_NOT_FOUND.cmdException(id);
         }
 
         return region;
@@ -206,39 +202,39 @@ class RegionCommandsBase {
         if (set.size() == 0) {
             if (allowGlobal) {
                 ProtectedRegion global = checkExistingRegion(regionManager, "__global__", true);
-                player.printDebug(Msg.REGION__COMMANDS__NOT_STANDING_GLOBAL.get());
+                Msg.REGION__COMMANDS__NOT_STANDING_GLOBAL.debug(player);
                 return global;
             }
-            throw Msg.REGION__COMMANDS__NOT_STANDING_IN_REGION.exception();
+            throw Msg.REGION__COMMANDS__NOT_STANDING_IN_REGION.cmdException();
         } else if (set.size() > 1) {
             boolean first = true;
             Set<ProtectedRegion> filteredRegions = set.getRegions().stream().filter(permissionPredicate).collect(Collectors.toSet());
             int hiddenRegions = set.size() - filteredRegions.size();
 
-            final TextComponent.Builder builder = TextComponent.builder("");
+            final TextComponent.Builder builder = Text.builder("");
             if (!filteredRegions.isEmpty()) {
                 builder.append(Msg.REGION__COMMANDS__CURRENT_REGIONS.text());
                 for (ProtectedRegion region : filteredRegions) {
                     if (!first) {
-                        builder.append(TextComponent.of(", "));
+                        builder.append(Text.of(", "));
                     }
                     first = false;
-                    TextComponent regionComp = TextComponent.of(region.getId(), TextColor.AQUA);
+                    TextComponent regionComp = Text.of(region.getId(), NamedTextColor.AQUA);
                     if (rgCmd != null && rgCmd.contains("%id%")) {
-                        regionComp = regionComp.hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT, Msg.REGION__COMMANDS__CLICK_TO_PICK.text()))
-                                .clickEvent(ClickEvent.of(ClickEvent.Action.RUN_COMMAND, rgCmd.replace("%id%", region.getId())));
+                        regionComp = regionComp.hoverEvent(HoverEvent.showText(Msg.REGION__COMMANDS__CLICK_TO_PICK.text()))
+                                .clickEvent(ClickEvent.runCommand(rgCmd.replace("%id%", region.getId())));
                     }
                     builder.append(regionComp);
                 }
                 if (hiddenRegions > 0) {
-                    builder.append(TextComponent.of(Msg.REGION__COMMANDS__CURRENT_REGIONS_WITH_HIDDEN.get(hiddenRegions), TextColor.GRAY));
+                    builder.append(Text.of(Msg.REGION__COMMANDS__CURRENT_REGIONS_WITH_HIDDEN.text(hiddenRegions), NamedTextColor.GRAY));
                 }
             } else {
-                builder.append(TextComponent.of(Msg.REGION__COMMANDS__CURRENT_REGIONS.get(), TextColor.GOLD));
-                builder.append(TextComponent.of(Msg.REGION__COMMANDS__CURRENT_REGIONS_HIDDEN.get(hiddenRegions), TextColor.GRAY));
+                builder.append(Text.of(Msg.REGION__COMMANDS__CURRENT_REGIONS.text(), NamedTextColor.GOLD));
+                builder.append(Text.of(Msg.REGION__COMMANDS__CURRENT_REGIONS_HIDDEN.text(hiddenRegions), NamedTextColor.GRAY));
             }
-            player.print(builder.build());
-            throw Msg.REGION__COMMANDS__STANDING_IN_MULTIPLE.exception();
+            Messenger.plain(player, builder.build());
+            throw Msg.REGION__COMMANDS__STANDING_IN_MULTIPLE.cmdException();
         }
 
         return set.iterator().next();
@@ -260,7 +256,7 @@ class RegionCommandsBase {
             }
             return localSession.getRegionSelector(localSession.getSelectionWorld()).getRegion();
         } catch (IncompleteRegionException e) {
-            throw Msg.REGION__COMMANDS__SELECT_AREA_FIRST.exception();
+            throw Msg.REGION__COMMANDS__SELECT_AREA_FIRST.cmdException();
         }
     }
 
@@ -286,12 +282,12 @@ class RegionCommandsBase {
      */
     protected static RegionManager checkRegionManager(World world) throws CommandException {
         if (!WorldGuard.getInstance().getPlatform().getGlobalStateManager().get(world).useRegions) {
-            throw Msg.REGION__COMMANDS__REGIONS_DISABLED.exception();
+            throw Msg.REGION__COMMANDS__REGIONS_DISABLED.cmdException();
         }
 
         RegionManager manager = WorldGuard.getInstance().getPlatform().getRegionContainer().get(world);
         if (manager == null) {
-            throw Msg.REGION__COMMANDS__REGION_DATA_LOAD_FAIL.exception();
+            throw Msg.REGION__COMMANDS__REGION_DATA_LOAD_FAIL.cmdException();
         }
         return manager;
     }
@@ -318,7 +314,7 @@ class RegionCommandsBase {
             BlockVector3 max = selection.getMaximumPoint();
             return new ProtectedCuboidRegion(id, min, max);
         } else {
-            throw Msg.REGION__COMMANDS__UNSUPPORTED_SHAPE.exception();
+            throw Msg.REGION__COMMANDS__UNSUPPORTED_SHAPE.cmdException();
         }
     }
 
@@ -335,7 +331,7 @@ class RegionCommandsBase {
             String failingList = Joiner.on(", ").join(failures.stream()
                     .map(regionManager -> "'" + regionManager.getName() + "'").collect(Collectors.toList()));
 
-            sender.print(Msg.REGION__COMMANDS__SAVE_FAILURES.text(failingList));
+            Messenger.plain(sender, Msg.REGION__COMMANDS__SAVE_FAILURES.text(failingList));
         }
     }
 
@@ -351,7 +347,7 @@ class RegionCommandsBase {
         }
         int height = region.getMaximumPoint().y() - region.getMinimumPoint().y();
         if (height <= 2) {
-            sender.printDebug(Msg.REGION__COMMANDS__HEIGHT_WARNING.get(height + 1));
+            Msg.REGION__COMMANDS__HEIGHT_WARNING.debug(sender, height + 1);
         }
     }
 
@@ -364,9 +360,7 @@ class RegionCommandsBase {
      */
     protected static void informNewUser(Actor sender, RegionManager manager, ProtectedRegion region) {
         if (manager.size() <= 2) {
-            sender.print(SubtleFormat.wrap(Msg.REGION__COMMANDS__NEW_USER_INFO1.get())
-                            .append(TextComponent.of("/rg flag " + region.getId() + " passthrough allow", TextColor.AQUA))
-                            .append(Msg.REGION__COMMANDS__NEW_USER_INFO2.text()));
+            Msg.REGION__COMMANDS__NEW_USER_INFO.plain(sender, "/rg flag " + region.getId() + " passthrough allow");
         }
     }
 
@@ -381,8 +375,7 @@ class RegionCommandsBase {
         ProtectedRegion spawn = WorldGuard.getInstance().getPlatform().getSpawnProtection(world);
         if (spawn != null) {
             if (!spawn.getIntersectingRegions(ImmutableList.of(region)).isEmpty()) {
-                sender.print(ErrorFormat.wrap(Msg.REGION__COMMANDS__SPAWN_OVERLAP_WARNING.get())
-                        .append(Msg.REGION__COMMANDS__SPAWN_OVERLAP_INFO.text()));
+                Msg.REGION__COMMANDS__SPAWN_OVERLAP.plain(sender);
                 return true;
             }
         }
@@ -404,9 +397,9 @@ class RegionCommandsBase {
             selector.setWorld(world);
             session.setRegionSelector(world, selector);
             selector.explainRegionAdjust(actor, session);
-            actor.print(Msg.REGION__SELECT__SELECTED.text(region.getType().getName()));
+            Messenger.plain(actor, Msg.REGION__SELECT__SELECTED.text(region.getType().getName()));
         } else {
-            throw Msg.REGION__SELECT__TYPE_FAIL.exception(region.getType().getName());
+            throw Msg.REGION__SELECT__TYPE_FAIL.cmdException(region.getType().getName());
         }
     }
 

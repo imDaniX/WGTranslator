@@ -26,17 +26,12 @@ import com.sk89q.minecraft.util.commands.CommandsManager;
 import com.sk89q.util.StringUtil;
 import com.sk89q.worldedit.extension.platform.Actor;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class TranslatableCommandsManager extends CommandsManager<Actor> {
     private FileConfiguration cfg;
@@ -44,10 +39,10 @@ public class TranslatableCommandsManager extends CommandsManager<Actor> {
     private boolean firstTime;
     private final Map<Command, Command> alternativeCommands = new HashMap<>();
 
-    public void load(Plugin plugin, I18n translator) {
-        file = new File(plugin.getDataFolder(), "translator-commands.yml");
+    public void load(I18n translator) {
+        file = new File(translator.getDirectory(), "commands.yml");
         firstTime = !file.exists();
-        cfg = translator.getConfig(file, true);
+        cfg = translator.getConfig(file, _ -> {});
     }
 
     public void clean() {
@@ -177,8 +172,8 @@ public class TranslatableCommandsManager extends CommandsManager<Actor> {
 
         private AltCommand(Command command, String usage, String desc) {
             this.command = command;
-            this.usage = Msg.colorize(usage);
-            this.desc = Msg.colorize(desc);
+            this.usage = Messenger.legacy(usage);
+            this.desc = Messenger.legacy(desc);
         }
 
         @Override

@@ -15,6 +15,11 @@ dependencies {
     "implementation"(libs.snakeyaml)
     "implementation"(libs.guava)
     "compileOnlyApi"(libs.jsr305)
+    "compileOnlyApi"(libs.adventure.api)
+    "compileOnlyApi"(libs.adventure.minimessage)
+    "compileOnlyApi"(libs.adventure.serializer.legacy)
+    "compileOnlyApi"(libs.adventure.serializer.gson)
+    "compileOnlyApi"(libs.adventure.serializer.plain)
     "implementation"(libs.gson)
 
     "compileOnly"(libs.worldedit.libs.ap)
@@ -27,6 +32,11 @@ dependencies {
     }
 
     "testImplementation"(libs.hamcrest.library)
+    "testImplementation"(libs.adventure.api)
+    "testImplementation"(libs.adventure.minimessage)
+    "testImplementation"(libs.adventure.serializer.legacy)
+    "testImplementation"(libs.adventure.serializer.gson)
+    "testImplementation"(libs.adventure.serializer.plain)
 }
 
 tasks.compileJava {

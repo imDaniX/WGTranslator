@@ -25,41 +25,27 @@ import com.google.common.collect.Iterators;
 import com.sk89q.worldedit.registry.Keyed;
 import com.sk89q.worldedit.registry.Registry;
 import com.sk89q.worldedit.util.Location;
-import com.sk89q.worldedit.util.formatting.component.PaginationBox;
-import com.sk89q.worldedit.util.formatting.text.Component;
-import com.sk89q.worldedit.util.formatting.text.TextComponent;
-import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
-import com.sk89q.worldedit.util.formatting.text.event.ClickEvent;
-import com.sk89q.worldedit.util.formatting.text.event.HoverEvent;
-import com.sk89q.worldedit.util.formatting.text.format.TextColor;
-import com.sk89q.worldedit.util.formatting.text.format.TextDecoration;
-import com.sk89q.worldedit.util.formatting.text.serializer.legacy.LegacyComponentSerializer;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.internal.permission.RegionPermissionModel;
-import com.sk89q.worldguard.protection.flags.BooleanFlag;
-import com.sk89q.worldguard.protection.flags.Flag;
-import com.sk89q.worldguard.protection.flags.Flags;
-import com.sk89q.worldguard.protection.flags.LocationFlag;
-import com.sk89q.worldguard.protection.flags.NumberFlag;
-import com.sk89q.worldguard.protection.flags.RegistryFlag;
-import com.sk89q.worldguard.protection.flags.SetFlag;
-import com.sk89q.worldguard.protection.flags.StateFlag;
-import com.sk89q.worldguard.protection.flags.StringFlag;
+import com.sk89q.worldguard.protection.flags.*;
 import com.sk89q.worldguard.protection.flags.registry.UnknownFlag;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import me.imdanix.wgtranslator.Message;
 import me.imdanix.wgtranslator.Msg;
+import me.imdanix.wgtranslator.text.PaginationBox;
+import me.imdanix.wgtranslator.text.Text;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TranslatableComponent;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 class FlagHelperBox extends PaginationBox {
@@ -85,7 +71,7 @@ class FlagHelperBox extends PaginationBox {
     private boolean monoSpace;
 
     FlagHelperBox(World world, ProtectedRegion region, RegionPermissionModel perms) {
-        super(Msg.REGION__FLAGS__TITLE.get(region.getId()), "/rg flags -w \"" + world.getName() + "\" -p %page% " + region.getId());
+        super(Msg.REGION__FLAGS__TITLE.text(region.getId()), "/rg flags -w \"" + world.getName() + "\" -p %page% " + region.getId());
         this.world = world;
         this.region = region;
         this.perms = perms;
@@ -94,7 +80,7 @@ class FlagHelperBox extends PaginationBox {
     @Override
     public Component getComponent(int number) {
         if (number == Flags.INBUILT_FLAGS.size()) {
-            return centerAndBorder(TextComponent.of(Msg.REGION__FLAGS__THIRD_PARTY.get(), TextColor.AQUA));
+            return centerAndBorder(Text.of(Msg.REGION__FLAGS__THIRD_PARTY.text(), NamedTextColor.AQUA));
         } else if (number > Flags.INBUILT_FLAGS.size()) {
             number -= 1;
         }
@@ -108,9 +94,9 @@ class FlagHelperBox extends PaginationBox {
     }
 
     private Component createLine(Flag<?> flag, boolean thirdParty) {
-        final TextComponent.Builder builder = TextComponent.builder("");
+        final TextComponent.Builder builder = Text.builder("");
 
-        appendFlagName(builder, flag, flag instanceof UnknownFlag ? TextColor.GRAY : thirdParty ? TextColor.LIGHT_PURPLE : TextColor.GOLD);
+        appendFlagName(builder, flag, flag instanceof UnknownFlag ? NamedTextColor.GRAY : thirdParty ? NamedTextColor.LIGHT_PURPLE : NamedTextColor.GOLD);
         appendFlagValue(builder, flag);
         return builder.build();
     }
@@ -118,24 +104,22 @@ class FlagHelperBox extends PaginationBox {
     private void appendFlagName(TextComponent.Builder builder, Flag<?> flag, TextColor color) {
         final String name = flag.getName();
         int length = monoSpace ? name.length() : FlagFontInfo.getPxLength(name);
-        builder.append(TextComponent.of(name, color));
+        builder.append(Text.of(name, color));
         if (flag.usesMembershipAsDefault()) {
-            builder.append(TextComponent.empty().append(TextComponent.of("*", TextColor.AQUA))
-                    .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT,
-                            TextComponent.of(Msg.REGION__FLAGS__SPECIAL__MEMBER.get()))));
+            builder.append(Text.empty().append(Text.of("*", NamedTextColor.AQUA))
+                    .hoverEvent(HoverEvent.showText(Msg.REGION__FLAGS__SPECIAL__MEMBER.text())));
             length += monoSpace ? 1 : FlagFontInfo.getPxLength('*');
         }
         if (flag == Flags.PASSTHROUGH) {
-            builder.append(TextComponent.empty().append(TextComponent.of("*", TextColor.AQUA))
-                    .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT,
-                            TextComponent.of(Msg.REGION__FLAGS__SPECIAL__BUILD.get()))));
+            builder.append(Text.empty().append(Text.of("*", NamedTextColor.AQUA))
+                    .hoverEvent(HoverEvent.showText(Msg.REGION__FLAGS__SPECIAL__BUILD.text())));
             length += monoSpace ? 1 : FlagFontInfo.getPxLength('*');
         }
         int leftover = (monoSpace ? PAD_PX_SIZE / 3 : PAD_PX_SIZE) - length;
-        builder.append(TextComponent.space());
+        builder.append(Text.space());
         leftover -= 4;
         if (leftover > 0) {
-            builder.append(TextComponent.of(Strings.repeat(".", monoSpace ? leftover : leftover / 2), TextColor.DARK_GRAY));
+            builder.append(Text.of(Strings.repeat(".", monoSpace ? leftover : leftover / 2), NamedTextColor.DARK_GRAY));
         }
     }
 
@@ -192,23 +176,19 @@ class FlagHelperBox extends PaginationBox {
 
             boolean maySet = perms.maySetFlag(region, flag, isExplicitSet ? null : String.valueOf(choice));
 
-            TextColor col = isExplicitSet ? TextColor.WHITE : inherited && currVal == choice ? TextColor.GRAY : TextColor.DARK_GRAY;
+            TextColor col = isExplicitSet ? NamedTextColor.WHITE : inherited && currVal == choice ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY;
             Set<TextDecoration> styles = choice == defVal ? ImmutableSet.of(TextDecoration.UNDERLINED) : Collections.emptySet();
 
-            Component choiceComponent = TextComponent.empty().append(TextComponent.of(capitalize(String.valueOf(choice)), col, styles));
+            Component choiceComponent = Text.empty().append(Text.of(capitalize(String.valueOf(choice)), col, styles));
 
             List<Component> hoverTexts = new ArrayList<>();
             if (maySet) {
                 if (isExplicitSet) {
-                    hoverTexts.add(TextComponent.of(Msg.REGION__FLAGS__UNSET.get(), TextColor.GOLD));
+                    hoverTexts.add(Text.of(Msg.REGION__FLAGS__UNSET.text(), NamedTextColor.GOLD));
                 } else if (DANGER_ZONE.contains(flag) && !(ProtectedRegion.GLOBAL_REGION.equals(region.getId()) && flag == Flags.PASSTHROUGH)) {
-                    hoverTexts.add(TextComponent.of(Msg.REGION__FLAGS__CONSEQUENCES1.get(), TextColor.RED)
-                            .append(TextComponent.newline())
-                            .append(TextComponent.of(Msg.REGION__FLAGS__CONSEQUENCES2.get())
-                            .append(TextComponent.newline())
-                            .append(TextComponent.of(Msg.REGION__FLAGS__CONSEQUENCES3.get()))));
+                    hoverTexts.add(Msg.REGION__FLAGS__CONSEQUENCES.text());
                 } else {
-                    hoverTexts.add(TextComponent.of(Msg.REGION__FLAGS__SET.get(), TextColor.GOLD));
+                    hoverTexts.add(Text.of(Msg.REGION__FLAGS__SET.text(), NamedTextColor.GOLD));
                 }
             }
             Component valType = getToolTipHint(defVal, choice, inherited);
@@ -217,30 +197,28 @@ class FlagHelperBox extends PaginationBox {
             }
 
             if (!hoverTexts.isEmpty()) {
-                TextComponent.Builder hoverBuilder = TextComponent.builder("");
+                TextComponent.Builder hoverBuilder = Text.builder("");
                 for (Iterator<Component> hovIt = hoverTexts.iterator(); hovIt.hasNext(); ) {
                     hoverBuilder.append(hovIt.next());
                     if (hovIt.hasNext()) {
-                        hoverBuilder.append(TextComponent.newline());
+                        hoverBuilder.append(Text.newline());
                     }
                 }
                 choiceComponent = choiceComponent.hoverEvent(
-                        HoverEvent.of(HoverEvent.Action.SHOW_TEXT, hoverBuilder.build()));
+                        HoverEvent.showText(hoverBuilder.build()));
             }
 
             if (maySet && (isExplicitSet || !DANGER_ZONE.contains(flag))) {
-                builder.append(choiceComponent.clickEvent(ClickEvent.of(ClickEvent.Action.RUN_COMMAND,
-                        makeCommand(flag, isExplicitSet ? "" : choice))));
+                builder.append(choiceComponent.clickEvent(ClickEvent.runCommand(makeCommand(flag, isExplicitSet ? "" : choice))));
             } else {
                 builder.append(choiceComponent);
             }
-            builder.append(TextComponent.space());
+            builder.append(Text.space());
         }
         if (suggestChoice != null && perms.maySetFlag(region, flag)) {
-            builder.append(TextComponent.of(suggestChoice, TextColor.DARK_GRAY)
-                    .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT,
-                            TextComponent.of(Msg.REGION__FLAGS__SET_CUSTOM.get(), TextColor.GOLD)))
-                    .clickEvent(ClickEvent.of(ClickEvent.Action.SUGGEST_COMMAND, makeCommand(flag, ""))));
+            builder.append(Text.of(suggestChoice, NamedTextColor.DARK_GRAY)
+                    .hoverEvent(HoverEvent.showText(Text.of(Msg.REGION__FLAGS__SET_CUSTOM.text(), NamedTextColor.GOLD)))
+                    .clickEvent(ClickEvent.suggestCommand(makeCommand(flag, ""))));
         }
     }
 
@@ -259,17 +237,17 @@ class FlagHelperBox extends PaginationBox {
 
         boolean maySet = !(flag instanceof UnknownFlag) && perms.maySetFlag(region, flag);
 
-        TextColor col = isExplicitSet ? TextColor.WHITE : inherited ? TextColor.GRAY : TextColor.DARK_GRAY;
+        TextColor col = isExplicitSet ? NamedTextColor.WHITE : inherited ? NamedTextColor.GRAY : NamedTextColor.DARK_GRAY;
         Set<TextDecoration> styles = currVal == defVal ? ImmutableSet.of(TextDecoration.UNDERLINED) : Collections.emptySet();
 
-        Component displayComponent = TextComponent.empty().append(TextComponent.of(display, col, styles));
+        Component displayComponent = Text.empty().append(Text.of(display, col, styles));
 
         List<Component> hoverTexts = new ArrayList<>();
         if (maySet) {
             if (isExplicitSet) {
-                hoverTexts.add(TextComponent.of(Msg.REGION__FLAGS__CHANGE.get(), TextColor.GOLD));
+                hoverTexts.add(Text.of(Msg.REGION__FLAGS__CHANGE.text(), NamedTextColor.GOLD));
             } else {
-                hoverTexts.add(TextComponent.of(Msg.REGION__FLAGS__SET.get(), TextColor.GOLD));
+                hoverTexts.add(Text.of(Msg.REGION__FLAGS__SET.text(), NamedTextColor.GOLD));
             }
         }
         Component valType = getToolTipHint(defVal, currVal, inherited);
@@ -278,28 +256,27 @@ class FlagHelperBox extends PaginationBox {
         }
 
         if (!hoverTexts.isEmpty()) {
-            TextComponent.Builder hoverBuilder = TextComponent.builder("");
+            TextComponent.Builder hoverBuilder = Text.builder("");
             for (Iterator<Component> hovIt = hoverTexts.iterator(); hovIt.hasNext(); ) {
                 hoverBuilder.append(hovIt.next());
                 if (hovIt.hasNext()) {
-                    hoverBuilder.append(TextComponent.newline());
+                    hoverBuilder.append(Text.newline());
                 }
             }
             if (hover != null) {
-                hoverBuilder.append(TextComponent.newline());
+                hoverBuilder.append(Text.newline());
                 hoverBuilder.append(hover);
             }
             displayComponent = displayComponent.hoverEvent(
-                    HoverEvent.of(HoverEvent.Action.SHOW_TEXT, hoverBuilder.build()));
+                    HoverEvent.showText(hoverBuilder.build()));
         }
 
         if (maySet) {
-            builder.append(displayComponent.clickEvent(ClickEvent.of(ClickEvent.Action.SUGGEST_COMMAND,
-                    makeCommand(flag, ""))));
+            builder.append(displayComponent.clickEvent(ClickEvent.suggestCommand(makeCommand(flag, ""))));
         } else {
             builder.append(displayComponent);
         }
-        builder.append(TextComponent.space());
+        builder.append(Text.space());
     }
 
     private String makeCommand(Flag<?> flag, Object choice) {
@@ -320,19 +297,13 @@ class FlagHelperBox extends PaginationBox {
         Component valType;
         if (inherited) {
             if (currVal == defVal) {
-                valType = TextComponent.of(Msg.REGION__FLAGS__INHERITED__INHERITED_DEFAULT1.get())
-                        .append(TextComponent.of(Msg.REGION__FLAGS__INHERITED__INHERITED_DEFAULT2.get())
-                                .decoration(TextDecoration.UNDERLINED, true))
-                        .append(TextComponent.of(Msg.REGION__FLAGS__INHERITED__INHERITED_DEFAULT3.get()));
+                valType = Msg.REGION__FLAGS__INHERITED__INHERITED_DEFAULT.text();
             } else {
-                valType = TextComponent.of(Msg.REGION__FLAGS__INHERITED__INHERITED.get());
+                valType = Msg.REGION__FLAGS__INHERITED__INHERITED.text();
             }
         } else {
             if (currVal == defVal) {
-                valType = TextComponent.empty()
-                        .append(TextComponent.of(Msg.REGION__FLAGS__INHERITED__DEFAULT1.get())
-                                .decoration(TextDecoration.UNDERLINED, true))
-                        .append(TextComponent.of(Msg.REGION__FLAGS__INHERITED__DEFAULT2.get()));
+                valType = Msg.REGION__FLAGS__INHERITED__DEFAULT.text();
             } else {
                 valType = null;
             }
@@ -364,10 +335,10 @@ class FlagHelperBox extends PaginationBox {
         String display = (currVal == null ? "" : currVal.size() + "x ") + subName;
         final String stringValue = currVal == null ? ""
                 : currVal.stream().map(String::valueOf).collect(Collectors.joining(","));
-        TextComponent hoverComp = TextComponent.of("");
+        TextComponent hoverComp = Text.of("");
         if (currVal != null) {
-            hoverComp = hoverComp.append(TextComponent.of(Msg.REGION__FLAGS__VALUES.get()))
-                    .append(TextComponent.newline()).append(TextComponent.of(stringValue));
+            hoverComp = hoverComp.append(Msg.REGION__FLAGS__VALUES.text())
+                    .append(Text.newline()).append(Text.of(stringValue));
         }
         appendValueText(builder, flag, display, hoverComp);
     }
@@ -393,12 +364,12 @@ class FlagHelperBox extends PaginationBox {
             if (defVal == null) {
                 appendValueText(builder, flag, Msg.REGION__FLAGS__VALUE__LOCATION__UNSET.get(), null);
             } else {
-                appendValueText(builder, flag, defVal.toString(), TextComponent.of(Msg.REGION__FLAGS__VALUE__LOCATION__DEFAULT.get())
-                        .append(TextComponent.newline()).append(TextComponent.of(defVal.toString())));
+                appendValueText(builder, flag, defVal.toString(), Msg.REGION__FLAGS__VALUE__LOCATION__DEFAULT.text()
+                        .append(Text.newline()).append(Text.of(defVal.toString())));
             }
         } else {
-            appendValueText(builder, flag, currVal.toString(), TextComponent.of(Msg.REGION__FLAGS__VALUE__LOCATION__CURRENT.get())
-                    .append(TextComponent.newline()).append(TextComponent.of(currVal.toString())));
+            appendValueText(builder, flag, currVal.toString(), Msg.REGION__FLAGS__VALUE__LOCATION__CURRENT.text()
+                    .append(Text.newline()).append(Text.of(currVal.toString())));
         }
     }
 
@@ -433,24 +404,24 @@ class FlagHelperBox extends PaginationBox {
             if (defVal == null) {
                 appendValueText(builder, flag, Msg.REGION__FLAGS__VALUE__STRING__UNSET.get(), null);
             } else {
-                final TextComponent defComp = LegacyComponentSerializer.INSTANCE.deserialize(defVal);
+                final Component defComp = Message.Serializer.fromLegacy(defVal);
                 String display = reduceToText(defComp);
                 display = display.replace("\n", "\\n");
                 if (display.length() > 23) {
                     display = display.substring(0, 20) + "...";
                 }
-                appendValueText(builder, flag, display, TextComponent.of(Msg.REGION__FLAGS__VALUE__STRING__DEFAULT.get())
-                        .append(TextComponent.newline()).append(defComp));
+                appendValueText(builder, flag, display, Msg.REGION__FLAGS__VALUE__STRING__DEFAULT.text()
+                        .append(Text.newline()).append(defComp));
             }
         } else {
-            TextComponent currComp = LegacyComponentSerializer.INSTANCE.deserialize(currVal);
+            Component currComp = Message.Serializer.fromLegacy(currVal);
             String display = reduceToText(currComp);
             display = display.replace("\n", "\\n");
             if (display.length() > 23) {
                 display = display.substring(0, 20) + "...";
             }
-            appendValueText(builder, flag, display, TextComponent.of(Msg.REGION__FLAGS__VALUE__STRING__CURRENT.get())
-                    .append(TextComponent.newline()).append(currComp));
+            appendValueText(builder, flag, display, Msg.REGION__FLAGS__VALUE__STRING__CURRENT.text()
+                    .append(Text.newline()).append(currComp));
         }
     }
 

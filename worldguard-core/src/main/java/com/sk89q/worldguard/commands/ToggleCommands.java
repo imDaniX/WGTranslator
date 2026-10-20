@@ -27,21 +27,15 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.entity.Entity;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.extension.platform.Capability;
-import com.sk89q.worldedit.util.formatting.component.CodeFormat;
-import com.sk89q.worldedit.util.formatting.component.ErrorFormat;
-import com.sk89q.worldedit.util.formatting.component.LabelFormat;
-import com.sk89q.worldedit.util.formatting.text.TextComponent;
-import com.sk89q.worldedit.util.formatting.text.event.ClickEvent;
-import com.sk89q.worldedit.util.formatting.text.event.HoverEvent;
-import com.sk89q.worldedit.util.formatting.text.format.TextColor;
-import com.sk89q.worldedit.util.formatting.text.format.TextDecoration;
 import com.sk89q.worldedit.world.World;
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.config.ConfigurationManager;
 import com.sk89q.worldguard.config.WorldConfiguration;
 import com.sk89q.worldguard.util.Entities;
+import me.imdanix.wgtranslator.Messenger;
 import me.imdanix.wgtranslator.Msg;
+import me.imdanix.wgtranslator.text.LabelFormat;
 
 public class ToggleCommands {
     private final WorldGuard worldGuard;
@@ -66,10 +60,10 @@ public class ToggleCommands {
         WorldConfiguration wcfg = WorldGuard.getInstance().getPlatform().getGlobalStateManager().get(world);
 
         if (!wcfg.fireSpreadDisableToggle) {
-            worldGuard.getPlatform().broadcastNotification(
-                    LabelFormat.wrap(Msg.FIRE__STOP__SUCCESS.get(world.getName(), sender.getDisplayName())));
+            Messenger.broadcast("worldguard.notify",
+                    LabelFormat.wrap(Msg.FIRE__STOP__SUCCESS.text(world.getName(), sender.getDisplayName())));
         } else {
-            sender.print(Msg.FIRE__STOP__ALREADY.get());
+            Msg.FIRE__STOP__ALREADY.info(sender);
         }
 
         wcfg.fireSpreadDisableToggle = true;
@@ -91,10 +85,10 @@ public class ToggleCommands {
         WorldConfiguration wcfg = WorldGuard.getInstance().getPlatform().getGlobalStateManager().get(world);
 
         if (wcfg.fireSpreadDisableToggle) {
-            worldGuard.getPlatform().broadcastNotification(
-                    LabelFormat.wrap(Msg.FIRE__ALLOW__SUCCESS.get(world.getName(), sender.getDisplayName())));
+            Messenger.broadcast("worldguard.notify",
+                    LabelFormat.wrap(Msg.FIRE__ALLOW__SUCCESS.text(world.getName(), sender.getDisplayName())));
         } else {
-            sender.print(Msg.FIRE__ALLOW__ALREADY.get());
+            Msg.FIRE__ALLOW__ALREADY.info(sender);
         }
 
         wcfg.fireSpreadDisableToggle = false;
@@ -109,9 +103,9 @@ public class ToggleCommands {
 
         if (args.hasFlag('i')) {
             if (configManager.activityHaltToggle) {
-                sender.print(Msg.HALT__STATUS__HALTED.get());
+                Msg.HALT__STATUS__HALTED.info(sender);
             } else {
-                sender.print(Msg.HALT__STATUS__ALLOWED.get());
+                Msg.HALT__STATUS__ALLOWED.info(sender);
             }
         } else {
             boolean activityHaltToggle = !args.hasFlag('c');
@@ -119,22 +113,7 @@ public class ToggleCommands {
             if (activityHaltToggle && (args.argsLength() == 0 || !args.getString(0).equalsIgnoreCase("confirm"))) {
                 String confirmCommand = "/" + args.getCommand() + " confirm";
 
-                TextComponent message = TextComponent.builder("")
-                        .append(ErrorFormat.wrap(Msg.HALT__CONFIRM__WARNING1.get()))
-                        .append(ErrorFormat.wrap(Msg.HALT__CONFIRM__WARNING2.get())
-                                .decoration(TextDecoration.BOLD, TextDecoration.State.TRUE))
-                        .append(ErrorFormat.wrap(Msg.HALT__CONFIRM__WARNING3.get()))
-                        .append(TextComponent.newline())
-                        .append(TextComponent.of(Msg.HALT__CONFIRM__PROMPT2.get(), TextColor.GREEN)
-                                .clickEvent(ClickEvent.of(ClickEvent.Action.RUN_COMMAND, confirmCommand))
-                                .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT, Msg.HALT__CONFIRM__PROMPT1.text(confirmCommand))))
-                        .append(ErrorFormat.wrap(Msg.HALT__CONFIRM__PROMPT3.get()))
-                        .append(CodeFormat.wrap(confirmCommand)
-                                .clickEvent(ClickEvent.of(ClickEvent.Action.SUGGEST_COMMAND, confirmCommand)))
-                        .append(ErrorFormat.wrap(Msg.HALT__CONFIRM__PROMPT4.get()))
-                        .build();
-
-                sender.print(message);
+                Msg.HALT__CONFIRM__MESSAGE.plain(sender, confirmCommand);
                 return;
             }
 
@@ -142,14 +121,14 @@ public class ToggleCommands {
 
             if (activityHaltToggle) {
                 if (!(sender instanceof LocalPlayer)) {
-                    sender.print(Msg.HALT__HALTED__INFO.get());
+                    Msg.HALT__HALTED__INFO.info(sender);
                 }
 
                 if (!args.hasFlag('s')) {
-                    worldGuard.getPlatform().broadcastNotification(
-                            LabelFormat.wrap(Msg.HALT__HALTED__BROADCAST.get(sender.getDisplayName())));
+                    Messenger.broadcast("worldguard.notify",
+                            LabelFormat.wrap(Msg.HALT__HALTED__BROADCAST.text(sender.getDisplayName())));
                 } else {
-                    sender.print(Msg.HALT__HALTED__SILENT.get(sender.getDisplayName()));
+                    Msg.HALT__HALTED__SILENT.info(sender, sender.getDisplayName());
                 }
 
                 for (World world : WorldEdit.getInstance().getPlatformManager().queryCapability(Capability.GAME_HOOKS).getWorlds()) {
@@ -163,19 +142,19 @@ public class ToggleCommands {
                     }
 
                     if (removed > 10) {
-                        sender.printRaw(Msg.HALT__ENTITIES_REMOVED.get(removed, world.getName()));
+                        Msg.HALT__ENTITIES_REMOVED.plain(sender, removed, world.getName());
                     }
                 }
             } else {
                 if (!args.hasFlag('s')) {
-                    worldGuard.getPlatform().broadcastNotification(
-                            LabelFormat.wrap(Msg.HALT__ALLOWED__BROADCAST.get()));
+                    Messenger.broadcast("worldguard.notify",
+                            LabelFormat.wrap(Msg.HALT__ALLOWED__BROADCAST.text()));
 
                     if (!(sender instanceof LocalPlayer)) {
-                        sender.print(Msg.HALT__ALLOWED__INFO.get());
+                        Msg.HALT__ALLOWED__INFO.info(sender);
                     }
                 } else {
-                    sender.print(Msg.HALT__ALLOWED__SILENT.get());
+                    Msg.HALT__ALLOWED__SILENT.info(sender);
                 }
             }
         }

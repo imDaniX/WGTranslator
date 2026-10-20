@@ -67,12 +67,12 @@ public class GeneralCommands {
 
                 // Tell the user
                 if (player.equals(sender)) {
-                    player.print(Msg.GOD__ENABLED.get());
+                    Msg.GOD__ENABLED.info(player);
 
                     // Keep track of this
                     included = true;
                 } else if (!args.hasFlag('s')) {
-                    player.print(Msg.GOD__ENABLED_BY.get(sender.getDisplayName()));
+                    Msg.GOD__ENABLED_BY.info(player, sender.getDisplayName());
 
                 }
             }
@@ -81,7 +81,7 @@ public class GeneralCommands {
         // The player didn't receive any items, then we need to send the
         // user a message so s/he know that something is indeed working
         if (!included) {
-            sender.print(Msg.GOD__ENABLED_OTHER.get());
+            Msg.GOD__ENABLED_OTHER.info(sender);
         }
     }
     
@@ -110,12 +110,12 @@ public class GeneralCommands {
             if (GodMode.set(player, session, false)) {
                 // Tell the user
                 if (player.equals(sender)) {
-                    player.print(Msg.GOD__DISABLED.get());
+                    Msg.GOD__DISABLED.info(player);
 
                     // Keep track of this
                     included = true;
                 } else if (!args.hasFlag('s')) {
-                    player.print(Msg.GOD__DISABLED_BY.get(sender.getDisplayName()));
+                    Msg.GOD__DISABLED_BY.info(player, sender.getDisplayName());
 
                 }
             }
@@ -124,7 +124,7 @@ public class GeneralCommands {
         // The player didn't receive any items, then we need to send the
         // user a message so s/he know that something is indeed working
         if (!included) {
-            sender.print(Msg.GOD__DISABLED_OTHER.get());
+            Msg.GOD__DISABLED_OTHER.info(sender);
         }
     }
     
@@ -155,12 +155,12 @@ public class GeneralCommands {
             
             // Tell the user
             if (player.equals(sender)) {
-                player.print(Msg.HEAL__HEALED.get());
+                Msg.HEAL__HEALED.info(player);
                 
                 // Keep track of this
                 included = true;
             } else if (!args.hasFlag('s')) {
-                player.print(Msg.HEAL__HEALED_BY.get(sender.getDisplayName()));
+                Msg.HEAL__HEALED_BY.info(player, sender.getDisplayName());
                 
             }
         }
@@ -168,7 +168,7 @@ public class GeneralCommands {
         // The player didn't receive any items, then we need to send the
         // user a message so s/he know that something is indeed working
         if (!included) {
-            sender.print(Msg.HEAL__HEALED_OTHER.get());
+            Msg.HEAL__HEALED_OTHER.info(sender);
         }
     }
     
@@ -196,12 +196,12 @@ public class GeneralCommands {
             
             // Tell the user
             if (player.equals(sender)) {
-                player.print(Msg.SLAY__SLAIN.get());
+                Msg.SLAY__SLAIN.info(player);
                 
                 // Keep track of this
                 included = true;
             } else if (!args.hasFlag('s')) {
-                player.print(Msg.SLAY__SLAIN_BY.get(sender.getDisplayName()));
+                Msg.SLAY__SLAIN_BY.info(player, sender.getDisplayName());
                 
             }
         }
@@ -209,7 +209,7 @@ public class GeneralCommands {
         // The player didn't receive any items, then we need to send the
         // user a message so s/he know that something is indeed working
         if (!included) {
-            sender.print(Msg.SLAY__SLAIN_OTHER.get());
+            Msg.SLAY__SLAIN_OTHER.info(sender);
         }
     }
     
@@ -221,12 +221,12 @@ public class GeneralCommands {
         if (args.argsLength() == 0) {
             player.setCompassTarget(new Location(player.getWorld(), player.getWorld().getSpawnPosition().toVector3()));
             
-            sender.print(Msg.LOCATE__RESET.get());
+            Msg.LOCATE__RESET.info(sender);
         } else {
             LocalPlayer target = worldGuard.getPlatform().getMatcher().matchSinglePlayer(sender, args.getString(0));
             player.setCompassTarget(target.getLocation());
             
-            sender.print(Msg.LOCATE__REPOINTED.get());
+            Msg.LOCATE__REPOINTED.info(sender);
         }
     }
     
@@ -238,6 +238,6 @@ public class GeneralCommands {
 
         WorldGuard.getInstance().getPlatform().stackPlayerInventory(player);
 
-        player.print(Msg.STACK__COMPACTED.get());
+        Msg.STACK__COMPACTED.info(player);
     }
 }

@@ -28,31 +28,77 @@ Pretranslated files for Russian are available at this [GitHub Gist](https://gist
 
 Since this is a fork, the original WorldGuard <ins>must be replaced</ins> with this one.
 
-On startup, the plugin will automatically create two files in the `./plugins/WorldGuard` folder:
-* `translator.yml` - contains all the main translatable strings of the plugin;
-* `translator-commands.yml` - contains descriptions and usage examples for the plugin's commands.
+On startup, the plugin will automatically create few files in the `./plugins/WorldGuard/translator` folder:
+* `config.yml` - settings of the translator;
+* `messages.yml` - contains all the main translatable strings of the plugin;
+* `commands.yml` - contains descriptions and usage examples for the plugin's commands.
 
 After editing, you need to execute the command `/wgtranslator` (permission `wgtranslator.reload`) - 
-it will reload the strings from the `translator.yml` file. 
+it will reload `config.yml` and `messages.yml`. 
 Some strings may require a server restart due to how WG works.
+
+# Message Format
+
+Every message in `messages.yml` can be either a plain string or a section:
+```yaml
+region.bypass.enabled: 'You are now bypassing region protection.' # uses the default serializer
+
+wand.regions.empty:
+  text: '<red>No defined regions here!'
+  type: ERROR            # optional
+  serializer: MINIMESSAGE # optional
+  place: ACTIONBAR        # optional
+```
+
+* `text` - the message itself. Placeholders (e.g. `{region}`) are the same for every serializer 
+  and are safe to use inside MiniMessage tag arguments, like `<click:run_command:'/rg info {region}'>`;
+* `serializer` - `LEGACY_AMPERSAND` (`&a`, `&#rrggbb`), `LEGACY_SECTION` (`§a`) or `MINIMESSAGE`. 
+  When omitted, the `serializer` from `config.yml` is used (`LEGACY_AMPERSAND` by default);
+* `type` - base formatting of the message, the same ones WorldGuard uses: `PLAIN`, `INFO`, `DEBUG`, `ERROR`, 
+  `SUBTLE`, `LABEL`, `CODE`. When omitted, WorldGuard picks it depending on where the message is sent. 
+  Colors inside the text take priority over the type;
+* `place` - `CHAT` (default), `TITLE` (a new line separates the title from the subtitle), `SUBTITLE` or `ACTIONBAR`. 
+  Console and non-player senders always receive chat messages.
+
+Messages that are meant to be rebuilt are generated with `serializer: MINIMESSAGE` already set.
+`/rg info` is one of them - `region.info.layout` is the whole output, and every `{placeholder}` is a ready-made 
+component (with its hover and click events) that can be moved, wrapped or dropped:
+```yaml
+region.info.layout:
+  serializer: MINIMESSAGE
+  text: |-
+    {header}
+    <blue>Region: <yellow>{id} <gray>[{type}]
+    <blue>Owners: {owners}
+    {flags}
+region.info.flags.entry:
+  serializer: MINIMESSAGE
+  text: '<{color}>{name} <dark_gray>=<yellow> {value}'
+```
+
+`{parents}` and `{last-seen}` are optional and carry their own leading new line, so place them right after the previous placeholder.
 
 # Translation Challenges
 
-The list of strings requiring a restart includes the entire `translator-commands.yml` file - 
+The list of strings requiring a restart includes the entire `commands.yml` file - 
 commands are registered on plugin startup via WorldEdit's outdated system and cannot be easily changed later. 
 Due to this same system, some strings cannot be translated at all. 
 For example, the string "Too few arguments." when typing `/rg f` is sent by WorldEdit itself.
 
-The keys in the `translator.yml` file might seem randomly scattered. 
+The keys in the `messages.yml` file might seem randomly scattered. 
 To some extent, that's true - 
 they were formed based on WorldGuard's code and only occasionally grouped into something logical.
 
 Some blocks of text strangely consist of multiple lines. 
-This isn't my whim - WorldGuard itself assembles such text pieces into something coherent. 
-It's all because of its poor integration with adventure. Moreover, the adventure version used is <ins>very</ins> old, 
-making it almost impossible to embed something like MiniMessage without rewriting the plugin's fundamental workings.
+This isn't my whim - WorldGuard itself assembles such text pieces into something coherent.
 
-Technically, some of the stuff mentioned can be fixed using various tricks and Java's reflection, 
+Messages that are built into WorldGuard's components (hover texts, region info, flag lists and so on) 
+use Adventure's components, so click and hover events from MiniMessage work there, but `place` does not.
+Messages handed over to WorldEdit as plain strings (like the ones shown while a region is being saved, 
+`onFailure` messages, kick and ban reasons, flag errors) are converted to the legacy format: 
+colors and decorations survive, events and `place` do not.
+
+Technically, the rest of the stuff mentioned can be fixed using various tricks and Java's reflection, 
 but that would significantly increase the project's complexity, which I wouldn't be very happy about - 
 I envisioned it as a small fork that doesn't change anything at the core of WorldGuard's operation, 
 so that the project can be easily updated to the latest versions of the original plugin.

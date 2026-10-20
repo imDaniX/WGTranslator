@@ -74,7 +74,7 @@ public class LocationFlag extends Flag<Location> {
                 if (WorldGuard.getInstance().getPlatform().getGlobalStateManager().get(player.getWorld()).boundedLocationFlags) {
                     if (!rg.contains(loc.toVector().toBlockPoint())) {
                         if (new RegionPermissionModel(player).mayOverrideLocationFlagBounds(rg)) {
-                            player.printDebug(Msg.REGION__FLAGS__VALUE__INVALID__OUTSIDE_SUCCESS.get());
+                            Msg.REGION__FLAGS__VALUE__INVALID__OUTSIDE_SUCCESS.debug(player);
                         } else {
                             // no permission
                             throw new InvalidFlagFormat(Msg.REGION__FLAGS__VALUE__INVALID__OUTSIDE.get());

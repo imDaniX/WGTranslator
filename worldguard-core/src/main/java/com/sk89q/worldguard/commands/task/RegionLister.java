@@ -19,18 +19,9 @@
 
 package com.sk89q.worldguard.commands.task;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.sk89q.minecraft.util.commands.CommandException;
-import com.sk89q.worldguard.util.profile.Profile;
 import com.sk89q.worldedit.extension.platform.Actor;
 import com.sk89q.worldedit.util.Location;
-import com.sk89q.worldedit.util.formatting.component.PaginationBox;
-import com.sk89q.worldedit.util.formatting.text.Component;
-import com.sk89q.worldedit.util.formatting.text.TextComponent;
-import com.sk89q.worldedit.util.formatting.text.event.ClickEvent;
-import com.sk89q.worldedit.util.formatting.text.event.HoverEvent;
-import com.sk89q.worldedit.util.formatting.text.format.TextColor;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.domains.DefaultDomain;
 import com.sk89q.worldguard.internal.permission.RegionPermissionModel;
@@ -39,18 +30,23 @@ import com.sk89q.worldguard.protection.association.RegionAssociable;
 import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import com.sk89q.worldguard.util.profile.Profile;
+import me.imdanix.wgtranslator.Messenger;
 import me.imdanix.wgtranslator.Msg;
+import me.imdanix.wgtranslator.text.PaginationBox;
+import me.imdanix.wgtranslator.text.Text;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class RegionLister implements Callable<Integer> {
 
@@ -134,14 +130,14 @@ public class RegionLister implements Callable<Integer> {
                         profile = WorldGuard.getInstance().getProfileService().findByName(name);
                     } catch (IOException e) {
                         log.log(Level.WARNING, "Failed UUID lookup of '" + name + "'", e);
-                        throw Msg.REGION__LIST__INFO__ERROR__UUID_IO.exception(name);
+                        throw Msg.REGION__LIST__INFO__ERROR__UUID_IO.cmdException(name);
                     } catch (InterruptedException e) {
                         log.log(Level.WARNING, "Failed UUID lookup of '" + name + "'", e);
-                        throw Msg.REGION__LIST__INFO__ERROR__UUID_INTERRUPT.exception(name);
+                        throw Msg.REGION__LIST__INFO__ERROR__UUID_INTERRUPT.cmdException(name);
                     }
 
                     if (profile == null) {
-                        throw Msg.REGION__LIST__INFO__ERROR__DOESNT_EXIST.exception(name);
+                        throw Msg.REGION__LIST__INFO__ERROR__DOESNT_EXIST.cmdException(name);
                     }
 
                     uniqueId = profile.getUniqueId();
@@ -195,7 +191,7 @@ public class RegionLister implements Callable<Integer> {
         }
 
         RegionPermissionModel perms = sender.isPlayer() ? new RegionPermissionModel(sender) : null;
-        String title = ownerMatcher == null ? Msg.REGION__LIST__INFO__HEADER__ALL.get() : Msg.REGION__LIST__INFO__HEADER__PLAYER.get(ownerMatcher.getName());
+        Component title = ownerMatcher == null ? Msg.REGION__LIST__INFO__HEADER__ALL.text() : Msg.REGION__LIST__INFO__HEADER__PLAYER.text(ownerMatcher.getName());
         String cmd = "/rg list -w \"" + world + "\""
                 + (playerName != null ? " -p " + playerName : "")
                 + (nameOnly ? " -n" : "")
@@ -203,7 +199,7 @@ public class RegionLister implements Callable<Integer> {
                 + (idFilter != null ? " -i " + idFilter : "")
                 + " %page%";
         PaginationBox box = new RegionListBox(title, cmd, perms, entries, world);
-        sender.print(box.create(page));
+        Messenger.plain(sender, box.create(page));
 
         return page;
     }
@@ -262,7 +258,7 @@ public class RegionLister implements Callable<Integer> {
         private final List<RegionListEntry> entries;
         private String world;
 
-        RegionListBox(String title, String cmd, RegionPermissionModel perms, List<RegionListEntry> entries, String world) {
+        RegionListBox(Component title, String cmd, RegionPermissionModel perms, List<RegionListEntry> entries, String world) {
             super(title, cmd);
             this.perms = perms;
             this.entries = entries;
@@ -272,33 +268,26 @@ public class RegionLister implements Callable<Integer> {
         @Override
         public Component getComponent(int number) {
             final RegionListEntry entry = entries.get(number);
-            final TextComponent.Builder builder = TextComponent.builder(number + 1 + ".").color(TextColor.LIGHT_PURPLE);
+            final TextComponent.Builder builder = Text.builder(number + 1 + ".").color(NamedTextColor.LIGHT_PURPLE);
             if (entry.isOwner()) {
-                builder.append(TextComponent.space()).append(TextComponent.of("+", TextColor.DARK_AQUA)
-                        .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT, TextComponent.of(Msg.REGION__LIST__INFO__OWNER.get(), TextColor.GOLD))));
+                builder.append(Text.space()).append(Text.of("+", NamedTextColor.DARK_AQUA)
+                        .hoverEvent(HoverEvent.showText(Text.of(Msg.REGION__LIST__INFO__OWNER.text(), NamedTextColor.GOLD))));
             } else if (entry.isMember()) {
-                builder.append(TextComponent.space()).append(TextComponent.of("-", TextColor.AQUA)
-                        .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT, TextComponent.of(Msg.REGION__LIST__INFO__MEMBER.get(), TextColor.GOLD))));
+                builder.append(Text.space()).append(Text.of("-", NamedTextColor.AQUA)
+                        .hoverEvent(HoverEvent.showText(Text.of(Msg.REGION__LIST__INFO__MEMBER.text(), NamedTextColor.GOLD))));
             }
-            builder.append(TextComponent.space()).append(TextComponent.of(entry.getRegion().getId(), TextColor.GOLD));
+            builder.append(Text.space()).append(Text.of(entry.getRegion().getId(), NamedTextColor.GOLD));
             if (perms != null && perms.mayLookup(entry.region)) {
-                builder.append(TextComponent.space().append(TextComponent.of(Msg.REGION__LIST__INFO__BUTTON__INFO.get(), TextColor.GRAY)
-                        .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT, TextComponent.of(Msg.REGION__LIST__INFO__BUTTON__INFO_CLICK.get())))
-                        .clickEvent(ClickEvent.of(ClickEvent.Action.RUN_COMMAND,
-                                "/rg info -w \"" + world + "\" " + entry.region.getId()))));
+                builder.append(Text.space().append(Msg.REGION__LIST__INFO__ACTION__INFO.text(
+                        "/rg info -w \"" + world + "\" " + entry.region.getId())));
             }
             final Location teleFlag = FlagValueCalculator.getEffectiveFlagOf(entry.region, Flags.TELE_LOC, perms != null && perms.getSender() instanceof RegionAssociable ? (RegionAssociable) perms.getSender() : null);
             if (perms != null && teleFlag != null && perms.mayTeleportTo(entry.region)) {
-                builder.append(TextComponent.space().append(TextComponent.of(Msg.REGION__LIST__INFO__BUTTON__TP.get(), TextColor.GRAY)
-                        .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT, TextComponent.of(Msg.REGION__LIST__INFO__BUTTON__TP_CLICK.get())))
-                        .clickEvent(ClickEvent.of(ClickEvent.Action.RUN_COMMAND,
-                                "/rg tp -w \"" + world + "\" " + entry.region.getId()))));
+                builder.append(Text.space().append(Msg.REGION__LIST__INFO__ACTION__TP.text(
+                        "/rg tp -w \"" + world + "\" " + entry.region.getId())));
             } else if (perms != null && perms.mayTeleportToCenter(entry.getRegion()) && entry.getRegion().isPhysicalArea()) {
-                builder.append(TextComponent.space().append(TextComponent.of(Msg.REGION__LIST__INFO__BUTTON__TP_CENTER.get(), TextColor.GRAY)
-                        .hoverEvent(HoverEvent.of(HoverEvent.Action.SHOW_TEXT,
-                                TextComponent.of(Msg.REGION__LIST__INFO__BUTTON__TP_CENTER_CLICK.get())))
-                        .clickEvent(ClickEvent.of(ClickEvent.Action.RUN_COMMAND,
-                                "/rg tp -c -w \"" + world + "\" " + entry.region.getId()))));
+                builder.append(Text.space().append(Msg.REGION__LIST__INFO__ACTION__TP_CENTER.text(
+                        "/rg tp -c -w \"" + world + "\" " + entry.region.getId())));
             }
             return builder.build();
         }

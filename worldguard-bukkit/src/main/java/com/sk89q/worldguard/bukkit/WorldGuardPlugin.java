@@ -21,13 +21,7 @@ package com.sk89q.worldguard.bukkit;
 
 import com.google.common.collect.ImmutableList;
 import com.sk89q.bukkit.util.CommandsManagerRegistration;
-import com.sk89q.minecraft.util.commands.CommandException;
-import com.sk89q.minecraft.util.commands.CommandPermissionsException;
-import com.sk89q.minecraft.util.commands.CommandUsageException;
-import com.sk89q.minecraft.util.commands.CommandsManager;
-import com.sk89q.minecraft.util.commands.MissingNestedCommandException;
-import com.sk89q.minecraft.util.commands.SimpleInjector;
-import com.sk89q.minecraft.util.commands.WrappedCommandException;
+import com.sk89q.minecraft.util.commands.*;
 import com.sk89q.wepif.PermissionsResolverManager;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.BukkitCommandSender;
@@ -39,27 +33,7 @@ import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.blacklist.Blacklist;
 import com.sk89q.worldguard.bukkit.event.player.ProcessPlayerEvent;
-import com.sk89q.worldguard.bukkit.listener.BlacklistListener;
-import com.sk89q.worldguard.bukkit.listener.BlockedPotionsListener;
-import com.sk89q.worldguard.bukkit.listener.BuildPermissionListener;
-import com.sk89q.worldguard.bukkit.listener.ChestProtectionListener;
-import com.sk89q.worldguard.bukkit.listener.DebuggingListener;
-import com.sk89q.worldguard.bukkit.listener.EventAbstractionListener;
-import com.sk89q.worldguard.bukkit.listener.InvincibilityListener;
-import com.sk89q.worldguard.bukkit.listener.PlayerModesListener;
-import com.sk89q.worldguard.bukkit.listener.PlayerMoveListener;
-import com.sk89q.worldguard.bukkit.listener.RegionFlagsListener;
-import com.sk89q.worldguard.bukkit.listener.RegionProtectionListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardBlockListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardCommandBookListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardEntityListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardHangingListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardPlayerListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardServerListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardVehicleListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardWeatherListener;
-import com.sk89q.worldguard.bukkit.listener.WorldGuardWorldListener;
-import com.sk89q.worldguard.bukkit.listener.WorldRulesListener;
+import com.sk89q.worldguard.bukkit.listener.*;
 import com.sk89q.worldguard.bukkit.session.BukkitSessionManager;
 import com.sk89q.worldguard.bukkit.util.ClassSourceValidator;
 import com.sk89q.worldguard.bukkit.util.Entities;
@@ -76,11 +50,9 @@ import com.sk89q.worldguard.protection.managers.storage.file.DirectoryYamlDriver
 import com.sk89q.worldguard.protection.managers.storage.sql.SQLDriver;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import com.sk89q.worldguard.util.logging.RecordMessagePrefixer;
-import me.imdanix.wgtranslator.I18n;
-import me.imdanix.wgtranslator.Msg;
-import me.imdanix.wgtranslator.TranslatableCommandsManager;
 import io.papermc.lib.PaperLib;
 import io.papermc.paper.ServerBuildInfo;
+import me.imdanix.wgtranslator.*;
 import org.bstats.bukkit.Metrics;
 import org.bstats.charts.DrilldownPie;
 import org.bstats.charts.SimplePie;
@@ -94,11 +66,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -151,9 +119,10 @@ public class WorldGuardPlugin extends JavaPlugin {
         getDataFolder().mkdirs(); // Need to create the plugins/WorldGuard folder
 
         // WGTranslator
+        Messenger.setBridge(new BukkitMessageBridge());
         I18n translator = new I18n(this);
         Objects.requireNonNull(getCommand("wgtranslator")).setExecutor(translator);
-        ((TranslatableCommandsManager)commands).load(this, translator);
+        ((TranslatableCommandsManager)commands).load(translator);
 
         PermissionsResolverManager.initialize(this);
 
@@ -326,16 +295,16 @@ public class WorldGuardPlugin extends JavaPlugin {
                 throw t;
             }
         } catch (CommandPermissionsException e) {
-            sender.sendMessage(Msg.ERROR__NO_PERMISSIONS.get());
+            Msg.ERROR__NO_PERMISSIONS.plain(sender);
         } catch (MissingNestedCommandException e) {
-            sender.sendMessage(Msg.ERROR__USAGE.get(e.getUsage()));
+            Msg.ERROR__USAGE.plain(sender, e.getUsage());
         } catch (CommandUsageException e) {
-            sender.sendMessage(Msg.ERROR__INFO.get(e.getMessage()));
-            sender.sendMessage(Msg.ERROR__USAGE.get(e.getUsage()));
+            Msg.ERROR__INFO.plain(sender, e.getMessage());
+            Msg.ERROR__USAGE.plain(sender, e.getUsage());
         } catch (WrappedCommandException e) {
-            sender.sendMessage(Msg.ERROR__INFO.get(e.getCause().getMessage()));
+            Msg.ERROR__INFO.plain(sender, e.getCause().getMessage());
         } catch (CommandException e) {
-            sender.sendMessage(Msg.ERROR__INFO.get(e.getMessage()));
+            Msg.ERROR__INFO.plain(sender, e.getMessage());
         }
 
         return true;

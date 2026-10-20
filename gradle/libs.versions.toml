@@ -1,5 +1,6 @@
 [versions]
 worldedit = "7.4.4"
+adventure = "5.2.0"
 crankcase = "0.1.0"
 
 # Minimum versions we apply to make dependencies support newer Java
@@ -33,6 +34,12 @@ dummypermscompat = "com.sk89q:dummypermscompat:1.10"
 bstats-bukkit = "org.bstats:bstats-bukkit:3.2.1"
 
 prtree = "org.khelekore:prtree:1.5.0"
+
+adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
+adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
+adventure-serializer-legacy = { module = "net.kyori:adventure-text-serializer-legacy", version.ref = "adventure" }
+adventure-serializer-gson = { module = "net.kyori:adventure-text-serializer-gson", version.ref = "adventure" }
+adventure-serializer-plain = { module = "net.kyori:adventure-text-serializer-plain", version.ref = "adventure" }
 
 flyway-core = "org.flywaydb:flyway-core:3.0"
 
